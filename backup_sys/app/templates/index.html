@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-md-6">
+      <button type="button" class="btn btn-primary btn-lg" id="backup-button">Создать резервную копию</button>
+    </div>
+  </div>
+  <br>
+
+  {% if message %}
+    <div class="alert alert-success" role="alert">
+      {{ message }}
+    </div>
+  {% endif %}
+
+  <script>
+    document.getElementById('backup-button').addEventListener('click', function() {
+      // Создайте объект FormData для отправки данных формы
+      var formData = new FormData();
+  
+      // Добавьте данные в объект FormData
+      // (В вашем случае, возможно, вам не нужно добавлять данные, 
+      // так как вы просто хотите отправить POST-запрос)
+  
+      // Отправьте POST-запрос на '/backup'
+      fetch('/backup', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Обработайте ответ сервера (если он есть)
+        if (data.message) {
+          alert(data.message);
+        }
+      })
+    //   .catch(error => {
+    //     console.error('Error:', error);
+    //   });
+    
+    // ТУТ ПОДПРАВИТЬ!
+    });
+  </script>  
+{% endblock %}
