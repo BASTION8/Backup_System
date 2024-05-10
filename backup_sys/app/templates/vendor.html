@@ -1,0 +1,47 @@
+<div class="container py-5">
+    <h2 class="mb-4">Cisco Devices</h2>
+    <div class="row">
+        <div class="col">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">Название устройства</th>
+                        <th scope="col">IP адрес</th>
+                        <th scope="col">Дата последнего бэкапа</th>
+                        <th scope="col">Статус</th>
+                        <th scope="col">Авто-бэкап</th>
+                        <th scope="col">Создать бэкап</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">1</th>
+                        <td>
+                            <input class="form-control" type="text" placeholder="hostname" />
+                        </td>
+                        <td><input class="form-control" type="text" placeholder="ip" /></td>
+                        <td>
+                            <input class="form-control" type="date" placeholder="date" />
+                        </td>
+                        <td>
+                            <div class="container mt-2">
+                                <span class="online-indicator bg-success mx-auto"
+                                    style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <input class="form-check-input mt-2" type="checkbox" placeholder="auto-backup"
+                                style="display: inline-block; width: 20px; height: 20px;" />
+                        </td>
+                        <td>
+                            <form class="container-fluid mt-1" method="POST">
+                                <button type="submit" class="btn btn-primary btn-md" id="backup-button">Создать</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

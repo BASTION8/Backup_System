@@ -22,8 +22,3 @@ def backup_script():
         with open(filename, 'w') as backup_file:
             backup_file.write(config)
 
-        # Сообщение о завершении
-        # print(f"Резервная копия конфигурации сохранена в файл: {filename}")
-        pass
-
-

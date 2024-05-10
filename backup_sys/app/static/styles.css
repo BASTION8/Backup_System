@@ -1,0 +1,13 @@
+.dropdown-menu {
+    border-radius: 0;
+    background-color: rgb(33, 37, 41);
+    padding: 10px;
+    width: auto;
+    max-width: 300px;
+  }
+  
+.dropdown-menu a {
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #fff;
+}
