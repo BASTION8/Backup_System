@@ -14,24 +14,31 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% for device in devices %}
                     <tr>
-                        <th scope="row">1</th>
-                        <td>
-                            <input class="form-control" type="text" placeholder="hostname" />
-                        </td>
-                        <td><input class="form-control" type="text" placeholder="ip" /></td>
-                        <td>
-                            <input class="form-control" type="date" placeholder="date" />
-                        </td>
+                        <td>{{ device.id }}</td>
+                        <td>{{ device.hostname }}</td>
+                        <td>{{ device.ip_address }}</td>
+                        <td>{{ device.backup_date }}</td>
                         <td>
                             <div class="container mt-2">
+                                {% if device.is_online %}
                                 <span class="online-indicator bg-success mx-auto"
                                     style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
+                                {% else %}
+                                <span class="online-indicator bg-danger mx-auto"
+                                    style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
+                                {% endif %}
                             </div>
                         </td>
                         <td>
-                            <input class="form-check-input mt-2" type="checkbox" placeholder="auto-backup"
-                                style="display: inline-block; width: 20px; height: 20px;" />
+                            {% if device.auto_backup %}
+                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckChecked" checked
+                                placeholder="auto-backup" style="display: inline-block; width: 20px; height: 20px;" />
+                            {% else %}
+                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckDefault"
+                                placeholder="auto-backup" style="display: inline-block; width: 20px; height: 20px;" />
+                            {% endif %}
                         </td>
                         <td>
                             <form class="container-fluid mt-1" method="POST">
@@ -39,6 +46,7 @@
                             </form>
                         </td>
                     </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

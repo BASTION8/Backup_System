@@ -91,13 +91,24 @@ def backup():
     except:
         flash('Не удалось сделать резервное копирование!', 'danger')
 
+def filter_devices(vendor_to_include):
+    devices = Device.query.filter_by(vendor=vendor_to_include)
+    filtered_devices = (
+        {field.name: getattr(device, field.name)
+        for field in device.__table__.columns
+        if field.name != 'vendor'}
+        for device in devices
+    )
+    return filtered_devices
+
 @app.route('/cisco', methods=['GET', 'POST'])
 def cisco():
     if request.method == 'POST':
         backup()
         return redirect(url_for('cisco'))
     else:
-        return render_template('cisco.html')
+        filtered_devices = filter_devices('Cisco')
+        return render_template('cisco.html', devices=filtered_devices)
     
 @app.route('/eltex', methods=['GET', 'POST'])
 def eltex():
@@ -105,7 +116,8 @@ def eltex():
         backup()
         return redirect(url_for('eltex'))
     else:
-        return render_template('eltex.html')
+        filtered_devices = filter_devices('Eltex')
+        return render_template('eltex.html', devices=filtered_devices)
     
 @app.route('/mellanox', methods=['GET', 'POST'])
 def mellanox():
@@ -113,7 +125,8 @@ def mellanox():
         backup()
         return redirect(url_for('mellanox'))
     else:
-        return render_template('mellanox.html')
+        filtered_devices = filter_devices('Mellanox')
+        return render_template('mellanox.html', devices=filtered_devices)
 
 # # session - словарь, ключ - значение
 # @app.route('/visits')

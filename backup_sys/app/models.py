@@ -62,3 +62,16 @@ class Role(db.Model):
 
     def __repr__(self):
         return '<Role %r>' % self.role_name
+    
+class Device(db.Model):
+    __tablename__ = 'devices'
+    id = db.Column(db.Integer, primary_key=True)
+    vendor = db.Column(db.String(100), nullable=False)
+    hostname = db.Column(db.String(100), nullable=False)
+    ip_address = db.Column(db.String(100), nullable=False)
+    backup_date = db.Column(db.Date)
+    is_online = db.Column(db.Boolean)
+    auto_backup = db.Column(db.Boolean)
+
+    def __repr__(self):
+        return '<Device %r>' % self.hostname
