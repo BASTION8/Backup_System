@@ -4,6 +4,9 @@ from backup import backup_script
 from sqlalchemy import MetaData, desc
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_apscheduler import APScheduler
+from icmplib import multiping
+import asyncio
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -64,24 +67,40 @@ convention = {
 
 metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(app, metadata=metadata)
-# migrate = Migrate(app, db)
+migrate = Migrate(app, db)
 
 from models import *
+
+# Настройка APScheduler
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.api_enabled = True
+
+# Функция пинга
+@scheduler.task('cron', id='ping_devices', minute='*/1')
+def ping_devices():
+    devices = Device.query.all()
+    ip_addresses = [device.ip_address for device in devices]
+
+    try:
+        results = multiping(ip_addresses, timeout=2)
+    except Exception as e:
+        print(f"Ошибка при пинговании устройств: {e}")
+        return
+
+    for device, result in zip(devices, results):
+        device.is_online = result
+        db.session.commit()
+
+# Запуск задачи
+scheduler.start()
 
 # для прослушивания всех адресов
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
 
-# user_id - должен быть строкой, потому что get_id() - возвращает строку а не число 
-# def get_users():
-#     return [{'user_id': '1', 'login': 'admin', 'password': 'admin'}]
-
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
-
 @app.route('/index', methods=['GET'])
-def index():    
+def index(): 
     return render_template('index.html')
 
 def backup():
@@ -102,6 +121,7 @@ def filter_devices(vendor_to_include):
     return filtered_devices
 
 @app.route('/cisco', methods=['GET', 'POST'])
+@login_required
 def cisco():
     if request.method == 'POST':
         backup()
@@ -111,6 +131,7 @@ def cisco():
         return render_template('cisco.html', devices=filtered_devices)
     
 @app.route('/eltex', methods=['GET', 'POST'])
+@login_required
 def eltex():
     if request.method == 'POST':
         backup()
@@ -120,6 +141,7 @@ def eltex():
         return render_template('eltex.html', devices=filtered_devices)
     
 @app.route('/mellanox', methods=['GET', 'POST'])
+@login_required
 def mellanox():
     if request.method == 'POST':
         backup()
