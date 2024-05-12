@@ -6,7 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
 from icmplib import multiping
-import asyncio
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -79,17 +78,21 @@ scheduler.api_enabled = True
 # Функция пинга
 @scheduler.task('cron', id='ping_devices', minute='*/1')
 def ping_devices():
+    app.app_context().push()
     devices = Device.query.all()
     ip_addresses = [device.ip_address for device in devices]
 
     try:
-        results = multiping(ip_addresses, timeout=2)
+        results = multiping(ip_addresses, count=2, interval=0.5)
     except Exception as e:
         print(f"Ошибка при пинговании устройств: {e}")
         return
 
     for device, result in zip(devices, results):
-        device.is_online = result
+        if result.is_alive:
+            device.is_online = True
+        else:
+            device.is_online = False
         db.session.commit()
 
 # Запуск задачи
