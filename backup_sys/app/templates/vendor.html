@@ -4,7 +4,7 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th scope="col">ID</th>
+                        <th scope="col">№</th>
                         <th scope="col">Название устройства</th>
                         <th scope="col">IP адрес</th>
                         <th scope="col">Дата последнего бэкапа</th>
@@ -16,7 +16,7 @@
                 <tbody>
                     {% for device in devices %}
                     <tr>
-                        <td>{{ device.id }}</td>
+                        <td>{{ device.num_id }}</td>
                         <td>{{ device.hostname }}</td>
                         <td>{{ device.ip_address }}</td>
                         <td>{{ device.backup_date }}</td>
@@ -42,7 +42,8 @@
                         </td>
                         <td>
                             <form class="container-fluid mt-1" method="POST">
-                                <button type="submit" class="btn btn-primary btn-md" id="backup-button">Создать</button>
+                                <button type="submit" class="btn btn-primary btn-md" name="backup-button"
+                                    id="backup-button-{{ device.id }}" value="{{ device.id }}">Создать</button>
                             </form>
                         </td>
                     </tr>

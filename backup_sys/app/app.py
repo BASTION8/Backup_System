@@ -70,6 +70,8 @@ migrate = Migrate(app, db)
 
 from models import *
 
+PER_PAGE = 3  # поменять на 10
+
 # Настройка APScheduler
 scheduler = APScheduler()
 scheduler.init_app(app)
@@ -114,14 +116,17 @@ def backup():
         flash('Не удалось сделать резервное копирование!', 'danger')
 
 def filter_devices(vendor_to_include):
-    devices = Device.query.filter_by(vendor=vendor_to_include)
-    filtered_devices = (
-        {field.name: getattr(device, field.name)
-        for field in device.__table__.columns
-        if field.name != 'vendor'}
-        for device in devices
-    )
-    return filtered_devices
+    page = request.args.get('page', 1, type=int)
+
+    filtered_devices = Device.query.filter_by(vendor=vendor_to_include)
+    devices = filtered_devices.order_by(Device.id)
+    pagination = devices.paginate(page=page, per_page=PER_PAGE)
+    devices = pagination.items
+
+    for i in range(0, len(devices)):
+        devices[i].num_id = PER_PAGE * (page - 1) + i + 1
+        
+    return devices, pagination
 
 @app.route('/cisco', methods=['GET', 'POST'])
 @login_required
@@ -130,8 +135,8 @@ def cisco():
         backup()
         return redirect(url_for('cisco'))
     else:
-        filtered_devices = filter_devices('Cisco')
-        return render_template('cisco.html', devices=filtered_devices)
+        devices, pagination = filter_devices('Cisco')
+        return render_template('cisco.html', devices=devices, pagination=pagination)
     
 @app.route('/eltex', methods=['GET', 'POST'])
 @login_required
@@ -140,18 +145,21 @@ def eltex():
         backup()
         return redirect(url_for('eltex'))
     else:
-        filtered_devices = filter_devices('Eltex')
-        return render_template('eltex.html', devices=filtered_devices)
+        devices, pagination = filter_devices('Eltex')
+        return render_template('eltex.html', devices=devices, pagination=pagination)
     
 @app.route('/mellanox', methods=['GET', 'POST'])
 @login_required
 def mellanox():
     if request.method == 'POST':
-        backup()
+        device_id = request.form['backup-button']
+        device = Device.query.filter_by(id=device_id).first()
+        if device:
+            print(device)
         return redirect(url_for('mellanox'))
     else:
-        filtered_devices = filter_devices('Mellanox')
-        return render_template('mellanox.html', devices=filtered_devices)
+        devices, pagination = filter_devices('Mellanox')
+        return render_template('mellanox.html', devices=devices, pagination=pagination)
 
 # # session - словарь, ключ - значение
 # @app.route('/visits')
@@ -191,10 +199,3 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('index'))
-
-# login_required - декаратор который проверяет аутентификацирован пользователь или нет
-# @app.route('/secret_page')
-# @login_required
-# def secret_page():
-#     return render_template('secret_page.html')
-
