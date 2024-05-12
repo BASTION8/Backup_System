@@ -3,18 +3,18 @@ import time
 import re
 import os
 
-def backup_eltex(ip_address):
-    # Подключение к коммутатору Eltex
-    eltex_device = {
+def backup_huawei(ip_address):
+    # Подключение к коммутатору Huawei 
+    huawei_device = {
         'host': ip_address,
         'username': 'admin',
         'password': 'admin',
-        'device_type': 'eltex'  # 'eltex_nms'
+        'device_type': 'huawei'  # 'huawei_vrp'
     }
 
-    with netmiko.ConnectHandler(**eltex_device) as net_conn:
+    with netmiko.ConnectHandler(**huawei_device) as net_conn:
         # Получение конфигурации
-        config = net_conn.send_command('show running-config')
+        config = net_conn.send_command('display running-config')
 
         # Получение hostname устройства
         # hostname = net_conn.send_command('show hostname')
@@ -40,4 +40,3 @@ def backup_eltex(ip_address):
         backup_path = os.path.join(backups_dir, filename)
         with open(backup_path, 'w') as backup_file:
             backup_file.write(config)
-
