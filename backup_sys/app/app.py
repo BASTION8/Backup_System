@@ -1,11 +1,13 @@
 from flask import Flask, render_template, session, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
-from backup import backup_script
 from sqlalchemy import MetaData, desc
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
 from icmplib import multiping
+from backup_cisco import backup_cisco
+from backup_eltex import backup_eltex
+from backup_mellanox import backup_mellanox
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -110,7 +112,21 @@ def index():
 
 def backup():
     try:
-        backup_script()
+        device_id = request.form['backup-button']
+        device = Device.query.filter_by(id=device_id).first()
+        if device.is_online:
+            match device.vendor:
+                case 'Cisco':
+                    backup_cisco(device.ip_address)
+                case 'Eltex':
+                    backup_eltex(device.ip_address)
+                case 'Mellanox':
+                    backup_mellanox(device.ip_address)
+                case _:
+                    flash('Неправильно указан вендор устройства!', 'danger')                    
+        else:
+            flash('Не удалось сделать резервное копирование!', 'danger')
+            return
         flash('Резервное копирование выполнено успешно!', 'success')
     except:
         flash('Не удалось сделать резервное копирование!', 'danger')
@@ -152,10 +168,7 @@ def eltex():
 @login_required
 def mellanox():
     if request.method == 'POST':
-        device_id = request.form['backup-button']
-        device = Device.query.filter_by(id=device_id).first()
-        if device:
-            print(device.ip_address)
+        backup()
         return redirect(url_for('mellanox'))
     else:
         devices, pagination = filter_devices('Mellanox')
