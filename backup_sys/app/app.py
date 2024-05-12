@@ -155,7 +155,7 @@ def mellanox():
         device_id = request.form['backup-button']
         device = Device.query.filter_by(id=device_id).first()
         if device:
-            print(device)
+            print(device.ip_address)
         return redirect(url_for('mellanox'))
     else:
         devices, pagination = filter_devices('Mellanox')

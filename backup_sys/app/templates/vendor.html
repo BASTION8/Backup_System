@@ -33,10 +33,11 @@
                         </td>
                         <td>
                             {% if device.auto_backup %}
-                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckChecked" checked
-                                placeholder="auto-backup" style="display: inline-block; width: 20px; height: 20px;" />
+                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckChecked-{{ device.id }}"
+                                checked placeholder="auto-backup"
+                                style="display: inline-block; width: 20px; height: 20px;" />
                             {% else %}
-                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckDefault"
+                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckDefault-{{ device.id }}"
                                 placeholder="auto-backup" style="display: inline-block; width: 20px; height: 20px;" />
                             {% endif %}
                         </td>
