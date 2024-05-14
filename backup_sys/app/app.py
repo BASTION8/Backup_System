@@ -5,9 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
 from icmplib import multiping
-from backup_cisco import backup_cisco
-from backup_eltex import backup_eltex
-from backup_mellanox import backup_mellanox
+from backup_device import backup
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -70,6 +68,12 @@ metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(app, metadata=metadata)
 migrate = Migrate(app, db)
 
+# # Регистрация Blueprints
+# from devices import bp as cisco_bp
+
+# app.register_blueprint(cisco_bp, url_prefix='/cisco')
+# app.register_blueprint(eltex_bp, url_prefix='/eltex')
+
 from models import *
 
 PER_PAGE = 3  # поменять на 10
@@ -110,27 +114,6 @@ if __name__ == '__main__':
 def index(): 
     return render_template('index.html')
 
-def backup():
-    try:
-        device_id = request.form['backup-button']
-        device = Device.query.filter_by(id=device_id).first()
-        if device.is_online:
-            match device.vendor:
-                case 'Cisco':
-                    backup_cisco(device.ip_address)
-                case 'Eltex':
-                    backup_eltex(device.ip_address)
-                case 'Mellanox':
-                    backup_mellanox(device.ip_address)
-                case _:
-                    flash('Неправильно указан вендор устройства!', 'danger')                    
-        else:
-            flash('Не удалось сделать резервное копирование!', 'danger')
-            return
-        flash('Резервное копирование выполнено успешно!', 'success')
-    except:
-        flash('Не удалось сделать резервное копирование!', 'danger')
-
 def filter_devices(vendor_to_include):
     page = request.args.get('page', 1, type=int)
 
@@ -144,35 +127,15 @@ def filter_devices(vendor_to_include):
         
     return devices, pagination
 
-@app.route('/cisco', methods=['GET', 'POST'])
+@app.route('/devices/<vendor>', methods=['GET', 'POST'])
 @login_required
-def cisco():
+def devices(vendor):
     if request.method == 'POST':
         backup()
-        return redirect(url_for('cisco'))
+        return redirect(url_for('devices', vendor=vendor))
     else:
-        devices, pagination = filter_devices('Cisco')
-        return render_template('cisco.html', devices=devices, pagination=pagination)
-    
-@app.route('/eltex', methods=['GET', 'POST'])
-@login_required
-def eltex():
-    if request.method == 'POST':
-        backup()
-        return redirect(url_for('eltex'))
-    else:
-        devices, pagination = filter_devices('Eltex')
-        return render_template('eltex.html', devices=devices, pagination=pagination)
-    
-@app.route('/mellanox', methods=['GET', 'POST'])
-@login_required
-def mellanox():
-    if request.method == 'POST':
-        backup()
-        return redirect(url_for('mellanox'))
-    else:
-        devices, pagination = filter_devices('Mellanox')
-        return render_template('mellanox.html', devices=devices, pagination=pagination)
+        devices, pagination = filter_devices(vendor)
+        return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)
 
 # # session - словарь, ключ - значение
 # @app.route('/visits')

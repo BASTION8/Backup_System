@@ -45,9 +45,9 @@
                 Меню вендоров
               </a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="{{ url_for('cisco') }}">Cisco</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('eltex') }}">Eltex</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('mellanox') }}">Mellanox</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('devices', vendor='cisco') }}">Cisco</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('devices', vendor='eltex') }}">Eltex</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('devices', vendor='mellanox') }}">Mellanox</a></li>
               </ul>
             </li>
             {% endif %}
