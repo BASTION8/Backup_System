@@ -7,7 +7,7 @@ import os
 def backup():
     from app import db
     from models import Device
-
+    # Получение соответствующего устройства, нажатой кнопке
     try:
         device_id = request.form['backup-button']
         device = Device.query.filter_by(id=device_id).first()
