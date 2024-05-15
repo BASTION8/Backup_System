@@ -1,56 +1,61 @@
-<div class="container py-2">
-    <div class="row">
-        <div class="col">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th scope="col">№</th>
-                        <th scope="col">Название устройства</th>
-                        <th scope="col">IP адрес</th>
-                        <th scope="col">Дата последнего бэкапа</th>
-                        <th scope="col">Статус</th>
-                        <th scope="col">Авто-бэкап</th>
-                        <th scope="col">Создать бэкап</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for device in devices %}
-                    <tr>
-                        <td>{{ device.num_id }}</td>
-                        <td>{{ device.hostname }}</td>
-                        <td>{{ device.ip_address }}</td>
-                        <td>{{ device.backup_date }}</td>
-                        <td>
-                            <div class="container mt-2">
-                                {% if device.is_online %}
-                                <span class="online-indicator bg-success mx-auto"
-                                    style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
-                                {% else %}
-                                <span class="online-indicator bg-danger mx-auto"
-                                    style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td>
-                            {% if device.auto_backup %}
-                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckChecked-{{ device.id }}"
-                                checked placeholder="auto-backup"
-                                style="display: inline-block; width: 20px; height: 20px;" />
+<div class="container py-2 d-flex flex-wrap">
+    <div class="table-container w-100">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">№</th>
+                    <th scope="col">Название устройства</th>
+                    <th scope="col">IP адрес</th>
+                    <th scope="col">Дата последнего бэкапа</th>
+                    <th scope="col">
+                        <div class="status-indicator d-flex justify-content-center">Статус</div>
+                    </th>
+                    <th scope="col">
+                        <div class="status-indicator d-flex justify-content-center">Авто-бэкап</div>
+                    </th>
+                    <th scope="col">
+                        <div class="status-indicator d-flex justify-content-center">Создать бэкап</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                <tr>
+                    <td>{{ device.num_id }}</td>
+                    <td>{{ device.hostname }}</td>
+                    <td>{{ device.ip_address }}</td>
+                    <td>{{ device.backup_date }}</td>
+                    <td>
+                        <div class="status-indicator d-flex justify-content-center mt-2">
+                            {% if device.is_online %}
+                            <span class="online-indicator bg-success mx-auto"
+                                style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
                             {% else %}
-                            <input class="form-check-input mt-2" type="checkbox" id="flexCheckDefault-{{ device.id }}"
-                                placeholder="auto-backup" style="display: inline-block; width: 20px; height: 20px;" />
+                            <span class="online-indicator bg-danger mx-auto"
+                                style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
                             {% endif %}
-                        </td>
-                        <td>
-                            <form class="container-fluid mt-1" method="POST">
-                                <button type="submit" class="btn btn-primary btn-md" name="backup-button"
-                                    id="backup-button-{{ device.id }}" value="{{ device.id }}">Создать</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </td>
+                    <td>
+                        <form class="d-flex justify-content-center mt-1" method="POST">
+                            {% if device.auto_backup %}
+                            <button type="submit" class="btn btn-success btn-sm" name="auto-backup"
+                                id="auto-backup-{{ device.id }}" value="{{ device.id }}">&#10003;</button>
+                            {% else %}
+                            <button type="submit" class="btn btn-danger btn-sm" name="auto-backup"
+                                id="auto-backup-{{ device.id }}" value="{{ device.id }}">&#10007;</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-flex justify-content-center mt-1" method="POST">
+                            <button type="submit" class="btn btn-primary btn-md" name="backup-button"
+                                id="backup-button-{{ device.id }}" value="{{ device.id }}">Создать</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>

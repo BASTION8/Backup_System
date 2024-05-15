@@ -8,6 +8,25 @@
 
 {% include 'vendor.html' %}
 
+<form method="POST">
+    <div class="table-container w-100">
+        <table class="table table-striped">
+            <tbody>
+                <tr>
+                    <td>
+                        <input class="form-control" type="text" placeholder="hostname" />
+                    </td>
+                    <td><input class="form-control" type="text" placeholder="ip" /></td>
+                    <td>
+                        <input class="form-control" type="text" placeholder="vendor" />
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+
 <div class="mb-5">
     {{ render_pagination(pagination, request.endpoint, { "vendor": vendor}) }}
 </div>

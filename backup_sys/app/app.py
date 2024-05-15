@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
 from icmplib import multiping
-from backup_device import backup
+from backup_device import backup, backup_device
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -71,8 +71,7 @@ migrate = Migrate(app, db)
 # # Регистрация Blueprints
 # from devices import bp as cisco_bp
 
-# app.register_blueprint(cisco_bp, url_prefix='/cisco')
-# app.register_blueprint(eltex_bp, url_prefix='/eltex')
+# app.register_blueprint(cisco_bp, url_prefix='/devices')
 
 from models import *
 
@@ -103,7 +102,22 @@ def ping_devices():
             device.is_online = False
         db.session.commit()
 
-# Запуск задачи
+# Функция авто-бэкапа
+@scheduler.task('cron', id='auto_backup', week='*/1')
+def auto_backup():
+    app.app_context().push()
+    devices = Device.query.filter_by(auto_backup=True)
+    try:
+        for device in devices:
+            if device.is_online:
+                date = backup_device(device.ip_address, device.vendor)
+                device.backup_date = date
+                db.session.commit()              
+    except Exception as e:
+        print(f"Ошибка при авто-бэкапе устройств: {e}")
+        return
+
+# Запуск задач
 scheduler.start()
 
 # для прослушивания всех адресов
@@ -111,7 +125,7 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0')
 
 @app.route('/index', methods=['GET'])
-def index(): 
+def index():
     return render_template('index.html')
 
 def filter_devices(vendor_to_include):
@@ -131,8 +145,14 @@ def filter_devices(vendor_to_include):
 @login_required
 def devices(vendor):
     if request.method == 'POST':
-        backup()
-        return redirect(url_for('devices', vendor=vendor))
+        if 'backup-button' in request.form:
+            backup()
+        elif 'auto-backup' in request.form:
+            device_id = request.form['auto-backup']
+            device = Device.query.filter_by(id=device_id).first()
+            device.auto_backup = not device.auto_backup  # Toggle auto_backup value
+            db.session.commit()
+            return redirect(url_for('devices', vendor=vendor))
     else:
         devices, pagination = filter_devices(vendor)
         return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)
