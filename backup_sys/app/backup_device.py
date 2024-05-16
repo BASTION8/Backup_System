@@ -12,8 +12,9 @@ def backup():
         device_id = request.form['backup-button']
         device = Device.query.filter_by(id=device_id).first()
         if device.is_online:
-            date = backup_device(device.ip_address, device.vendor)
+            date, hostname = backup_device(device.ip_address, device.vendor, device.login, device.password)
             device.backup_date = date
+            device.hostname = hostname
             db.session.commit()              
         else:
             flash('Не удалось сделать резервное копирование - устройство не в сети!', 'danger')
@@ -22,7 +23,7 @@ def backup():
     except:
         flash('Не удалось сделать резервное копирование!', 'danger')
 
-def backup_device(ip_address, vendor):
+def backup_device(ip_address, vendor, login, password):
     # Подключение к коммутатору
 
     vendor_device_type = {
@@ -35,8 +36,8 @@ def backup_device(ip_address, vendor):
 
     device = {
         'host': ip_address,
-        'username': 'admin',
-        'password': 'admin',
+        'username': login,
+        'password': password,
         'device_type': vendor_device_type[vendor]
     }
 
@@ -53,8 +54,10 @@ def backup_device(ip_address, vendor):
                 config = net_conn.send_command('show configuration')
             case 'Huawei':
                 config = net_conn.send_command('display running-config')
-            case _:
-                flash('Неправильно указан вендор устройства!', 'danger') 
+            
+            # case _:
+            #     flash('Неправильно указан вендор устройства!', 'danger')
+            #     return 
         
         # Получение hostname устройства
         # hostname = net_conn.send_command('show hostname')
@@ -81,7 +84,7 @@ def backup_device(ip_address, vendor):
         with open(backup_path, 'w') as backup_file:
             backup_file.write(config)
 
-        return date
+        return date, hostname
 
 
         

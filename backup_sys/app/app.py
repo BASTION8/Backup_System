@@ -110,7 +110,7 @@ def auto_backup():
     try:
         for device in devices:
             if device.is_online:
-                date = backup_device(device.ip_address, device.vendor)
+                date = backup_device(device.ip_address, device.vendor, device.login, device.password)
                 device.backup_date = date
                 db.session.commit()              
     except Exception as e:
@@ -152,7 +152,7 @@ def devices(vendor):
             device = Device.query.filter_by(id=device_id).first()
             device.auto_backup = not device.auto_backup  # Toggle auto_backup value
             db.session.commit()
-            return redirect(url_for('devices', vendor=vendor))
+        return redirect(url_for('devices', vendor=vendor))
     else:
         devices, pagination = filter_devices(vendor)
         return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)

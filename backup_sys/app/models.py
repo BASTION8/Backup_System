@@ -66,9 +66,11 @@ class Role(db.Model):
 class Device(db.Model):
     __tablename__ = 'devices'
     id = db.Column(db.Integer, primary_key=True)
-    vendor = db.Column(db.String(100), nullable=False)
+    vendor = db.Column(db.String(50), nullable=False)
     hostname = db.Column(db.String(100), nullable=False)
-    ip_address = db.Column(db.String(100), nullable=False)
+    ip_address = db.Column(db.String(50), nullable=False)
+    login = db.Column(db.String(50), nullable=False)
+    password = db.Column(db.String(50), nullable=False)
     backup_date = db.Column(db.Date)
     is_online = db.Column(db.Boolean)
     auto_backup = db.Column(db.Boolean)
