@@ -2,29 +2,55 @@
 {% from 'pagination.html' import render_pagination %}
 
 {% block content %}
-<div class="container py-2">
-    <h2 class="mb-4">{{ vendor.title() }} Devices</h2>
-</div>
 
 {% include 'vendor.html' %}
 
-<form method="POST">
-    <div class="table-container w-100">
-        <table class="table table-striped">
+<form class="card my-3" method="POST">
+    <div class="card-header">
+        <h5 class="my-1">Добавление нового устройства</h5>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col"><label for="vendor">Производитель</label></th>
+                    <th scope="col"><label for="hostname">Название устройства</label></th>
+                    <th scope="col"><label for="ip_address">IP адрес</label></th>
+                    <th scope="col"><label for="login">Логин</label></th>
+                    <th scope="col"><label for="password">Пароль</label></th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
             <tbody>
                 <tr>
                     <td>
-                        <input class="form-control" type="text" placeholder="hostname" />
+                        <input class="form-control" type="text" placeholder="Введите производителя" id="vendor"
+                            name="vendor" required />
                     </td>
-                    <td><input class="form-control" type="text" placeholder="ip" /></td>
                     <td>
-                        <input class="form-control" type="text" placeholder="vendor" />
+                        <input class="form-control" type="text" placeholder="Введите название" id="hostname"
+                            name="hostname" required />
+                    </td>
+                    <td>
+                        <input class="form-control" type="text" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+                            placeholder="Введите IP адрес" id="ip_address" name="ip_address" required />
+                    </td>
+                    <td>
+                        <input class="form-control" type="text" placeholder="Введите логин" id="login" name="login"
+                            required />
+                    </td>
+                    <td>
+                        <input class="form-control" type="password" placeholder="Введите пароль" id="password"
+                            name="password" required />
+                    </td>
+                    <td>
+                        <button type="submit" class="btn btn-success" name="create-device"
+                            id="create-device">Добавить</button>
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
-    <button type="submit" class="btn btn-primary">Сохранить</button>
 </form>
 
 <div class="mb-5">

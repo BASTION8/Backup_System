@@ -6,6 +6,8 @@ from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
 from icmplib import multiping
 from backup_device import backup, backup_device
+from ipaddress import ip_address
+import bleach
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -76,6 +78,13 @@ migrate = Migrate(app, db)
 from models import *
 
 PER_PAGE = 3  # поменять на 10
+
+DEVICE_PARAMS = ['vendor', 'hostname', 'ip_address', 'login', 'password']
+
+VENDORS = vendor_device_type = ['Cisco', 'Eltex', 'Mellanox', 'Brocade', 'Huawei']
+
+def params():
+    return { p: request.form.get(p) for p in DEVICE_PARAMS }
 
 # Настройка APScheduler
 scheduler = APScheduler()
@@ -152,6 +161,45 @@ def devices(vendor):
             device = Device.query.filter_by(id=device_id).first()
             device.auto_backup = not device.auto_backup  # Toggle auto_backup value
             db.session.commit()
+        elif 'create-device' in request.form:
+            device = Device(**params())
+            # Cанитайзер чтобы экранировать все потенциально опасные теги
+            device.vendor = bleach.clean(device.vendor)
+            device.hostname = bleach.clean(device.hostname)
+            device.ip_address = bleach.clean(device.ip_address)
+            device.login = bleach.clean(device.login)
+            device.password = bleach.clean(device.password)
+
+            try:
+                ip_address(device.ip_address)  # Проверка IP-адреса с помощью ipaddress
+            except ValueError:
+                flash('Неверный формат IP-адреса!', 'danger')
+                return redirect(url_for('devices', vendor=vendor))
+
+            if device.vendor.title() not in VENDORS:
+                flash('Неверное название вендора!', 'danger')
+                return redirect(url_for('devices', vendor=vendor))
+
+            try:
+                db.session.add(device)
+                db.session.commit()
+            except: 
+                db.session.rollback()
+                flash('Введены некорректные данные или не все поля заполнены. Ошибка сохранения', 'danger')
+                return redirect(url_for('devices', vendor=vendor))
+            
+            flash(f'Устройство "{device.hostname}" было успешно добавлено!', 'success')
+
+        elif 'delete-device' in request.form:
+            device_id = request.form['delete-device']
+            device = Device.query.filter_by(id=device_id).first()
+            if device:
+                db.session.delete(device)
+                db.session.commit()
+                flash('Устройство успешно удалено!', 'success')
+            else:
+                flash('Устройство не найдено!', 'danger')   
+
         return redirect(url_for('devices', vendor=vendor))
     else:
         devices, pagination = filter_devices(vendor)

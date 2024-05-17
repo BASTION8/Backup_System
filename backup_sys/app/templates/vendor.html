@@ -1,5 +1,10 @@
-<div class="container py-2 d-flex flex-wrap">
-    <div class="table-container w-100">
+<div class="card my-4 d-flex flex-wrap">
+    <div class="card-header">
+        <div class="container py-2">
+            <h4 class="mb-1">{{ vendor.title() }} Devices</h4>
+        </div>
+    </div>
+    <div class="card-body p-0">
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -11,10 +16,13 @@
                         <div class="status-indicator d-flex justify-content-center">Статус</div>
                     </th>
                     <th scope="col">
-                        <div class="status-indicator d-flex justify-content-center">Авто-бэкап</div>
+                        <div class="auto-backup d-flex justify-content-center">Авто-бэкап</div>
                     </th>
                     <th scope="col">
-                        <div class="status-indicator d-flex justify-content-center">Создать бэкап</div>
+                        <div class="create-backup d-flex justify-content-center">Создать бэкап</div>
+                    </th>
+                    <th scope="col">
+                        <div class="delete-device d-flex justify-content-center">Удалить</div>
                     </th>
                 </tr>
             </thead>
@@ -51,6 +59,12 @@
                         <form class="d-flex justify-content-center mt-1" method="POST">
                             <button type="submit" class="btn btn-primary btn-md" name="backup-button"
                                 id="backup-button-{{ device.id }}" value="{{ device.id }}">Создать</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form class="d-flex justify-content-center mt-1" method="POST">
+                            <button type="submit" class="btn btn-danger btn-md" name="delete-device"
+                                id="delete-device-{{ device.id }}" value="{{ device.id }}">DEL</button>
                         </form>
                     </td>
                 </tr>
