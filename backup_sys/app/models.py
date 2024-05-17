@@ -1,5 +1,3 @@
-import os
-import sqlalchemy as sa
 from flask_login import UserMixin
 from app import db, app
 # from users_policy import UserPolicy

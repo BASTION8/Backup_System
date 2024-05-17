@@ -1,6 +1,6 @@
 from flask import Flask, render_template, session, request, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
-from sqlalchemy import MetaData, desc
+from flask_login import LoginManager, login_user, logout_user, login_required
+from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
@@ -18,6 +18,7 @@ login_manager.login_message = 'Для доступа к данной стран�
 login_manager.login_message_category = 'warning'
 
 app = Flask(__name__)
+app.config['SESSION_PERMANENT'] = False
 application = app
 
 # После вызова нужно вызвать элемент init_app, с аргументом объект приложения
@@ -69,11 +70,6 @@ convention = {
 metadata = MetaData(naming_convention=convention)
 db = SQLAlchemy(app, metadata=metadata)
 migrate = Migrate(app, db)
-
-# # Регистрация Blueprints
-# from devices import bp as cisco_bp
-
-# app.register_blueprint(cisco_bp, url_prefix='/devices')
 
 from models import *
 
