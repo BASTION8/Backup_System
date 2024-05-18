@@ -31,17 +31,22 @@ def backup_device(ip_address, vendor, login, password):
         'Eltex': 'eltex',        # 'eltex_nms'
         'Mellanox': 'mellanox',  # 'mellanox_sx'
         'Brocade': 'brocade',    # 'brocade_fastiron'
-        'Huawei': 'huawei'       # 'huawei_vrp',
+        'Huawei': 'huawei',      # 'huawei_vrp'
     }
 
     device = {
         'host': ip_address,
         'username': login,
         'password': password,
-        'device_type': vendor_device_type[vendor]
+        'device_type': vendor_device_type[vendor],
+        'secret': password
     }
 
     with netmiko.ConnectHandler(**device) as net_conn:
+        # Переход в привилегированный режим
+        if not net_conn.check_enable_mode():
+            net_conn.enable()
+        
         # Получение конфигурации
         match vendor:
             case 'Cisco':

@@ -77,7 +77,7 @@ PER_PAGE = 3  # поменять на 10
 
 DEVICE_PARAMS = ['vendor', 'hostname', 'ip_address', 'login', 'password']
 
-VENDORS = vendor_device_type = ['Cisco', 'Eltex', 'Mellanox', 'Brocade', 'Huawei']
+VENDORS = ['Cisco', 'Eltex', 'Mellanox', 'Brocade', 'Huawei', 'B4Com']
 
 def params():
     return { p: request.form.get(p) for p in DEVICE_PARAMS }
@@ -172,9 +172,9 @@ def devices(vendor):
                 flash('Неверный формат IP-адреса!', 'danger')
                 return redirect(url_for('devices', vendor=vendor))
 
-            if device.vendor.title() not in VENDORS:
-                flash('Неверное название вендора!', 'danger')
-                return redirect(url_for('devices', vendor=vendor))
+            # if (device.vendor.title() or device.vendor) not in VENDORS:
+            #     flash('Неверное название вендора!', 'danger')
+            #     return redirect(url_for('devices', vendor=vendor))
 
             try:
                 db.session.add(device)

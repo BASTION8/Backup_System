@@ -42,7 +42,7 @@
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
                 aria-expanded="false">
-                Меню вендоров
+                Выбор вендора
               </a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                 <li><a class="dropdown-item" href="{{ url_for('devices', vendor='cisco') }}">Cisco</a></li>
@@ -50,6 +50,7 @@
                 <li><a class="dropdown-item" href="{{ url_for('devices', vendor='mellanox') }}">Mellanox</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('devices', vendor='brocade') }}">Brocade</a></li>
                 <li><a class="dropdown-item" href="{{ url_for('devices', vendor='huawei') }}">Huawei</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('devices', vendor='b4com') }}">B4com</a></li>
               </ul>
             </li>
             {% endif %}
