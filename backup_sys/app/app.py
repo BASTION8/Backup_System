@@ -77,8 +77,6 @@ PER_PAGE = 3  # поменять на 10
 
 DEVICE_PARAMS = ['vendor', 'hostname', 'ip_address', 'login', 'password']
 
-VENDORS = ['Cisco', 'Eltex', 'Mellanox', 'Brocade', 'Huawei', 'B4Com']
-
 def params():
     return { p: request.form.get(p) for p in DEVICE_PARAMS }
 
@@ -160,7 +158,6 @@ def devices(vendor):
         elif 'create-device' in request.form:
             device = Device(**params())
             # Cанитайзер чтобы экранировать все потенциально опасные теги
-            device.vendor = bleach.clean(device.vendor)
             device.hostname = bleach.clean(device.hostname)
             device.ip_address = bleach.clean(device.ip_address)
             device.login = bleach.clean(device.login)
@@ -171,10 +168,6 @@ def devices(vendor):
             except ValueError:
                 flash('Неверный формат IP-адреса!', 'danger')
                 return redirect(url_for('devices', vendor=vendor))
-
-            # if (device.vendor.title() or device.vendor) not in VENDORS:
-            #     flash('Неверное название вендора!', 'danger')
-            #     return redirect(url_for('devices', vendor=vendor))
 
             try:
                 db.session.add(device)

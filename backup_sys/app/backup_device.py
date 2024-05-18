@@ -28,6 +28,7 @@ def backup_device(ip_address, vendor, login, password):
 
     vendor_device_type = {
         'Cisco': 'cisco_ios',
+        'B4Com': 'cisco_ios',
         'Eltex': 'eltex',        # 'eltex_nms'
         'Mellanox': 'mellanox',  # 'mellanox_sx'
         'Brocade': 'brocade',    # 'brocade_fastiron'
@@ -51,6 +52,8 @@ def backup_device(ip_address, vendor, login, password):
         match vendor:
             case 'Cisco':
                 config = net_conn.send_command('show running-config')
+            case 'B4Com':
+                config = net_conn.send_command('show running-config')
             case 'Eltex':
                 config = net_conn.send_command('show running-config')
             case 'Brocade':
@@ -59,10 +62,6 @@ def backup_device(ip_address, vendor, login, password):
                 config = net_conn.send_command('show configuration')
             case 'Huawei':
                 config = net_conn.send_command('display running-config')
-            
-            # case _:
-            #     flash('Неправильно указан вендор устройства!', 'danger')
-            #     return 
         
         # Получение hostname устройства
         # hostname = net_conn.send_command('show hostname')

@@ -13,7 +13,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th scope="col"><label for="vendor">Производитель</label></th>
+                    <th scope="col"><label for="vendor">Вендор</label></th>
                     <th scope="col"><label for="hostname">Название устройства</label></th>
                     <th scope="col"><label for="ip_address">IP адрес</label></th>
                     <th scope="col"><label for="login">Логин</label></th>
@@ -24,8 +24,10 @@
             <tbody>
                 <tr>
                     <td>
-                        <input class="form-control" type="text" placeholder="Введите производителя" id="vendor"
-                            name="vendor" required />
+                        <input class="form-control" type="hidden" id="vendor" name="vendor"
+                            value="{{ vendor.title() }}">
+                        <span class="form-control-plaintext fw-bold" style="font-size: 18px;">
+                            {{ vendor.title() }}</span>
                     </td>
                     <td>
                         <input class="form-control" type="text" placeholder="Введите название" id="hostname"
