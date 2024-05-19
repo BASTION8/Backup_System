@@ -7,7 +7,10 @@ from flask_apscheduler import APScheduler
 from icmplib import multiping
 from backup_device import backup, backup_device
 from ipaddress import ip_address
+from config import DEFAULT_PASSWORD
 import bleach
+import datetime
+import re
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -18,7 +21,7 @@ login_manager.login_message = 'Для доступа к данной стран�
 login_manager.login_message_category = 'warning'
 
 app = Flask(__name__)
-app.config['SESSION_PERMANENT'] = False
+app.permanent_session_lifetime = datetime.timedelta(minutes=30)
 application = app
 
 # После вызова нужно вызвать элемент init_app, с аргументом объект приложения
@@ -127,10 +130,6 @@ scheduler.start()
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
 
-@app.route('/index', methods=['GET'])
-def index():
-    return render_template('index.html')
-
 def filter_devices(vendor_to_include):
     page = request.args.get('page', 1, type=int)
 
@@ -143,6 +142,38 @@ def filter_devices(vendor_to_include):
         devices[i].num_id = PER_PAGE * (page - 1) + i + 1
         
     return devices, pagination
+
+def getPassErrors(password):
+    password_error_list = set()
+    if password==None:
+        password_error_list.add('Поле не может быть пустым')
+    else:
+        if len(password) > 128 or len(password) < 8:
+            password_error_list.add('Пароль должен быть длинной больше 8 и меньше 128 символов')
+        if not any(c.islower() for c in password):
+            password_error_list.add('Пароль должен содержать строчную букву')
+        if not any(c.isupper() for c in password):
+            password_error_list.add('Пароль должен содержать заглавную букву')
+        if not any(c.isdigit() for c in password):
+            password_error_list.add('Пароль должен содержать цифру')
+        for i in password:
+            if i.isalpha():
+                if not (bool(re.search('[а-яА-Я]', i)) or bool(re.search('[a-zA-Z]', i))):
+                    password_error_list.add('Допустимы только латинские или кириллические буквы')
+            elif i.isdigit():
+                pass
+            else:
+                if i == ' ':
+                    password_error_list.add('Недопустимо использовать пробел')
+                if i not in '''~ ! ? @ # $ % ^ & * _ - + ( ) [ ] { } > < / \ | " ' . , : ;'''.split():
+                    password_error_list.add('Недопустимые символы')
+    if len(password_error_list) != 0:
+        return password_error_list
+
+@app.route('/index', methods=['GET'])
+def index():
+    return render_template('index.html')
+
 
 @app.route('/devices/<vendor>', methods=['GET', 'POST'])
 @login_required
@@ -194,15 +225,6 @@ def devices(vendor):
         devices, pagination = filter_devices(vendor)
         return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)
 
-# # session - словарь, ключ - значение
-# @app.route('/visits')
-# def visits():
-#     if session.get('visits_count') is None:
-#         session['visits_count'] = 1
-#     else:
-#         session['visits_count'] += 1
-#     return render_template('visits.html')
-
 # Извлекам значение с помощью request, из формы берем значение по ключам (login,password) и проверяем значения(наш ли это пользователь)
 # login_user - обновление данных сесси и запомнить что пользователь залогинился
 # при вызове берется индифекатор текущего пользователя,  
@@ -222,13 +244,61 @@ def login():
             if user and user.check_password(password):
                 login_user(user, remember=remember_me)
                 flash('Вы успешно аутентифицированы.', 'success')
+                session['user_id'] = user.id
                 next = request.args.get('next')
+                if DEFAULT_PASSWORD == password:
+                    flash('Необходимо сменить стандартный пароль!', 'danger')
                 return redirect(next or url_for('index'))
         flash('Невозможно аутентифицироваться с указанными логином и паролем.', 'danger')
     return render_template('login.html')
+
+@app.route('/change_password', methods=['POST', 'GET'])
+@login_required
+def change_password():   
+    if request.method == 'GET':
+        return render_template('change_password.html')
+    else:
+        current_user = User.query.get(session.get('user_id'))
+        
+        current_password = request.form['nowPassword']
+        new_password = request.form['newPassword']
+        repeat_password = request.form['repeatPassword']
+        
+        # Проверка текущего пароля
+        if not current_user.check_password(current_password):
+            flash('Неверный текущий пароль!', 'danger')
+            return redirect(url_for('change_password'))
+
+        # Проверка совпадения нового пароля
+        if new_password != repeat_password:
+            flash('Пароли не совпадают!', 'danger')
+            return redirect(url_for('change_password'))
+        
+        # Проверка совпадения нового и старого пароля
+        if new_password == current_password:
+            flash('Старый и новый пароли не должны совпадать', 'danger')
+            return redirect(url_for('change_password'))
+        
+        password_error_list = getPassErrors(new_password)
+        if password_error_list:
+            return render_template('change_password.html', password_error_list=password_error_list)
+
+        # Хеширование нового пароля
+        current_user.set_password(new_password)
+
+        # Сохранение изменений в базе данных
+        try:
+            db.session.commit()
+        except Exception:
+            flash('Не удалось изменить пароль!', 'danger')
+            return redirect(url_for('change_password'))
+        
+        flash('Пароль успешно изменен!', 'success')
+        return redirect(url_for('index'))
 
 # Удаляем из сессии данные о текущем пользовате 
 @app.route('/logout')
 def logout():
     logout_user()
+    session.clear()
     return redirect(url_for('index'))
