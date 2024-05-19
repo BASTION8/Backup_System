@@ -21,7 +21,7 @@ login_manager.login_message = 'Для доступа к данной стран�
 login_manager.login_message_category = 'warning'
 
 app = Flask(__name__)
-app.permanent_session_lifetime = datetime.timedelta(minutes=30)
+app.permanent_session_lifetime = datetime.timedelta(minutes=30) # Время жизни сессии (30 минут)
 application = app
 
 # После вызова нужно вызвать элемент init_app, с аргументом объект приложения
