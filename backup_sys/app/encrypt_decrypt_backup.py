@@ -1,6 +1,6 @@
 from pygost.gost3412 import GOST3412Kuznechik, GOST3412Magma
 from pygost.utils import hexdec
-from config import ENCRYPT_KEY
+
 
 # Функция добавления недостающих битов
 def pad_block(block, block_size):
@@ -10,10 +10,12 @@ def pad_block(block, block_size):
     padding = padding_length * b'\x00'
     return block + padding
 
+
 # Функция удаления добавленных битов
 def unpad_block(block):
     block = block.replace(b'\x00', b'')
     return block
+
 
 # Функция шифрования блоков kuznechik
 def encrypt_blocks_kuznechik(input_file, output_file, key):
@@ -26,6 +28,7 @@ def encrypt_blocks_kuznechik(input_file, output_file, key):
             block = pad_block(block, block_size=16)
             block = cipher.encrypt(block)  # Шифрование блока
             fout.write(block)  # Запись зашифрованного блока
+
 
 # Функция дешифрования блоков kuznechik
 def decrypt_blocks_kuznechik(input_file, output_file, key):
@@ -52,6 +55,7 @@ def encrypt_blocks_magma(input_file, output_file, key):
             block = cipher.encrypt(block)  # Шифрование блока
             fout.write(block)  # Запись зашифрованного блока
 
+
 # Функция дешифрования блоков magma
 def decrypt_blocks_magma(input_file, output_file, key):
     cipher = GOST3412Magma(key=hexdec(key))
@@ -65,14 +69,14 @@ def decrypt_blocks_magma(input_file, output_file, key):
             fout.write(block)  # Запись расшифрованного блока
 
 # Пример использования
-input_file = r'..\backups\backup_RBT-DEMO-DMZ-SW-1_2024-05-19.cfg'
-output_file_enc = r'..\backups\output.enc'
-output_file_dec = r'..\backups\plaintext.txt'
+# input_file = r'..\backups\backup.cfg'
+# output_file_enc = r'..\backups\output.enc'
+# output_file_dec = r'..\backups\plaintext.cfg'
 
 # Шифрование файла
-#encrypt_blocks_kuznechik(input_file, output_file_enc, ENCRYPT_KEY)
-encrypt_blocks_magma(input_file, output_file_enc, ENCRYPT_KEY)
+# encrypt_blocks_kuznechik(input_file, output_file_enc, ENCRYPT_KEY)
+# encrypt_blocks_magma(input_file, output_file_enc, ENCRYPT_KEY)
 
 # Дешифрование файла
-#decrypt_blocks_kuznechik(output_file_enc, output_file_dec, ENCRYPT_KEY)
-decrypt_blocks_magma(output_file_enc, output_file_dec, ENCRYPT_KEY)
+# decrypt_blocks_kuznechik(output_file_enc, output_file_dec, ENCRYPT_KEY)
+# decrypt_blocks_magma(output_file_enc, output_file_dec, ENCRYPT_KEY)
