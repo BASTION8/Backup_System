@@ -89,7 +89,3 @@ def backup_device(ip_address, vendor, login, password):
             backup_file.write(config)
 
         return date, hostname
-
-
-        
-

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="text-center"> Загрузка бэкапа </h2>
+
+<form class="container-fluid mt-5" method="POST" style="max-width: 20rem;">
+    <div class="form-floating mb-3">
+        <input autocomplete="off" type="password" class="form-control" id="nowPassword" name="nowPassword"
+            placeholder="nowPassword" required>
+        <label for="nowPassword">Введите пароль</label>
+    </div>
+
+    <select class="form-select mb-3 py-3" id="menuDevices" name="menuDevices" required>
+        <option value="" selected disabled>Выберите устройство</option>
+        {% for device in devices %}
+        <option value="{{ device.hostname }}">{{ device.hostname }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary w-100"> Скачать </button>
+
+</form>
+
+
+{% endblock %}

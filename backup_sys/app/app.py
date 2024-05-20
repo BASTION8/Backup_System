@@ -1,4 +1,4 @@
-from flask import Flask, render_template, session, request, redirect, url_for, flash
+from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
@@ -8,9 +8,7 @@ from icmplib import multiping
 from backup_device import backup, backup_device
 from ipaddress import ip_address
 from config import DEFAULT_PASSWORD
-import bleach
-import datetime
-import re
+import bleach, datetime, os, re, sys
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -79,6 +77,18 @@ from models import *
 PER_PAGE = 3  # поменять на 10
 
 DEVICE_PARAMS = ['vendor', 'hostname', 'ip_address', 'login', 'password']
+
+BACKUP_FOLDER_PATH = r'..\backups'
+
+# Для правильной работы дебаггера
+# def get_backup_folder():
+#     path = r'backup_sys\backups'
+
+#     if '--no-debugger' in sys.argv:
+#         path = r'..\backups'
+
+#     return os.path.join(current_app.root_path, path)
+
 
 def params():
     return { p: request.form.get(p) for p in DEVICE_PARAMS }
@@ -169,6 +179,20 @@ def getPassErrors(password):
                     password_error_list.add('Недопустимые символы')
     if len(password_error_list) != 0:
         return password_error_list
+    
+def get_last_backup_date(device_name):
+    # Получить все файлы бэкапа для устройства
+    device_backups = [f for f in os.listdir(BACKUP_FOLDER_PATH) if f.startswith(f"backup_{device_name}_")]
+
+    # Сортировка файлов по дате создания (в порядке убывания)
+    device_backups.sort(key=lambda f: os.path.getmtime(os.path.join(BACKUP_FOLDER_PATH, f)), reverse=True)
+
+    # Извлечение даты из имени первого файла (самого нового)
+    if device_backups:
+        filename = device_backups[0]
+        return datetime.datetime.strptime(filename.split('_')[2].split('.')[0], '%Y-%m-%d')
+    else:
+        return None
 
 @app.route('/index', methods=['GET'])
 def index():
@@ -224,6 +248,41 @@ def devices(vendor):
     else:
         devices, pagination = filter_devices(vendor)
         return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)
+    
+@app.route('/download_backups', methods=['GET', 'POST'])
+@login_required
+def download_backups():
+    if request.method == 'GET':
+        devices = Device.query.all()
+        return render_template('download_backups.html', devices=devices)
+    else:
+        # Получение из сессии текущего id пользователя, гарантирует защиту от CSRF
+        current_user = User.query.get(session.get('user_id'))
+        current_password = request.form['nowPassword']
+        # Проверка текущего пароля
+        if not current_user.check_password(current_password):
+            flash('Неверный пароль!', 'danger')
+            return redirect(url_for('download_backups'))
+        
+        selected_device = request.form['menuDevices']
+
+        # Получить дату последнего бэкапа для выбранного устройства
+        last_backup_date = get_last_backup_date(selected_device)
+
+        if last_backup_date:
+            # Формирование имени файла бэкапа
+            filename = f"backup_{selected_device}_{last_backup_date.strftime('%Y-%m-%d')}.cfg"
+
+            # Проверка наличия файла бэкапа
+            if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, filename)):
+                # Указан глобальный путь для безопасности
+                return send_from_directory(os.path.join(current_app.root_path, BACKUP_FOLDER_PATH), filename)
+            else:
+                flash(f"Бэкап для устройства '{selected_device}' не найден.", 'warning')
+        else:
+            flash(f"Устройство '{selected_device}' не имеет бэкапов.", 'warning')
+
+        return redirect(url_for('download_backups'))
 
 # Извлекам значение с помощью request, из формы берем значение по ключам (login,password) и проверяем значения(наш ли это пользователь)
 # login_user - обновление данных сесси и запомнить что пользователь залогинился
@@ -247,7 +306,7 @@ def login():
                 session['user_id'] = user.id
                 next = request.args.get('next')
                 if DEFAULT_PASSWORD == password:
-                    flash('Необходимо сменить стандартный пароль!', 'danger')
+                    flash('Необходимо сменить стандартный пароль!', 'warning')
                 return redirect(next or url_for('index'))
         flash('Невозможно аутентифицироваться с указанными логином и паролем.', 'danger')
     return render_template('login.html')
@@ -258,8 +317,8 @@ def change_password():
     if request.method == 'GET':
         return render_template('change_password.html')
     else:
+        # Получение из сессии текущего id пользователя, гарантирует защиту от CSRF
         current_user = User.query.get(session.get('user_id'))
-        
         current_password = request.form['nowPassword']
         new_password = request.form['newPassword']
         repeat_password = request.form['repeatPassword']
