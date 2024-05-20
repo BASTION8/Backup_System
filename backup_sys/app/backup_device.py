@@ -17,7 +17,7 @@ def backup():
             device.hostname = hostname
             db.session.commit()              
         else:
-            flash('Не удалось сделать резервное копирование - устройство не в сети!', 'danger')
+            flash('Не удалось сделать резервное копирование - устройство не в сети!', 'warning')
             return
         flash('Резервное копирование выполнено успешно!', 'success')
     except:

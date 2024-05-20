@@ -221,7 +221,7 @@ def devices(vendor):
             try:
                 ip_address(device.ip_address)  # Проверка IP-адреса с помощью ipaddress
             except ValueError:
-                flash('Неверный формат IP-адреса!', 'danger')
+                flash('Неверный формат IP-адреса!', 'warning')
                 return redirect(url_for('devices', vendor=vendor))
 
             try:
@@ -229,7 +229,7 @@ def devices(vendor):
                 db.session.commit()
             except: 
                 db.session.rollback()
-                flash('Введены некорректные данные или не все поля заполнены. Ошибка сохранения', 'danger')
+                flash('Введены некорректные данные или не все поля заполнены. Ошибка сохранения', 'warning')
                 return redirect(url_for('devices', vendor=vendor))
             
             flash(f'Устройство "{device.hostname}" было успешно добавлено!', 'success')
@@ -280,7 +280,7 @@ def download_backups():
             else:
                 flash(f"Бэкап для устройства '{selected_device}' не найден.", 'warning')
         else:
-            flash(f"Устройство '{selected_device}' не имеет бэкапов.", 'warning')
+            flash(f"Устройство '{selected_device}' не имеет бэкапов.", 'danger')
 
         return redirect(url_for('download_backups'))
 
@@ -325,17 +325,17 @@ def change_password():
         
         # Проверка текущего пароля
         if not current_user.check_password(current_password):
-            flash('Неверный текущий пароль!', 'danger')
+            flash('Неверный текущий пароль!', 'warning')
             return redirect(url_for('change_password'))
 
         # Проверка совпадения нового пароля
         if new_password != repeat_password:
-            flash('Пароли не совпадают!', 'danger')
+            flash('Пароли не совпадают!', 'warning')
             return redirect(url_for('change_password'))
         
         # Проверка совпадения нового и старого пароля
         if new_password == current_password:
-            flash('Старый и новый пароли не должны совпадать', 'danger')
+            flash('Старый и новый пароли не должны совпадать', 'warning')
             return redirect(url_for('change_password'))
         
         password_error_list = getPassErrors(new_password)
