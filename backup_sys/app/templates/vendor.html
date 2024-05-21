@@ -26,11 +26,12 @@
                     </th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for device in devices %}
                 <tr>
                     <td>{{ device.num_id }}</td>
-                    <td>{{ device.hostname }}</td>
+                    <td name="device-id" id="{{ device.id }}">{{ device.hostname }}</td>
                     <td>{{ device.ip_address }}</td>
                     <td>{{ device.backup_date }}</td>
                     <td>
@@ -70,6 +71,39 @@
                 </tr>
                 {% endfor %}
             </tbody>
+            <script>
+                const devices = document.querySelectorAll("[name=device-id]");
+                const device_ids = [];
+
+                for (let i = 0; i < devices.length; i++) {
+                    const device = devices[i];
+                    device_ids.push(device.id);
+                }
+
+                async function UpdateDevice() {
+                    while (true) {
+                        await new Promise((resolve) => setTimeout(resolve, 60000));
+
+                        const responce = await fetch(`/devices/{{vendor}}/status?id=${device_ids.join("&id=")}`)
+                        const device_status = await responce.json();
+
+                        for (let i = 0; i < device_status.length; i++) {
+                            const device = device_status[i];
+                            var deviceElement = document.getElementById(`online-indicator-${device.id}`);
+                            
+                            if (device.is_online) {
+                                deviceElement.classList.remove("bg-danger");
+                                deviceElement.classList.add("bg-success");
+                            } else {
+                                deviceElement.classList.remove("bg-success");
+                                deviceElement.classList.add("bg-danger");
+                            }
+                        }
+                    }
+                }
+
+                UpdateDevice();
+            </script>
         </table>
     </div>
 </div>

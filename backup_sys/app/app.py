@@ -132,6 +132,7 @@ def ping_devices():
             device.is_online = False
         db.session.commit()
 
+
 # Функция авто-бэкапа
 @scheduler.task('cron', id='auto_backup', week='*/1')
 def auto_backup():
@@ -155,6 +156,7 @@ scheduler.start()
 # для прослушивания всех адресов
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
+
 
 def filter_devices(vendor_to_include):
     page = request.args.get('page', 1, type=int)
@@ -220,6 +222,15 @@ def get_last_backup_date(device_name):
 @app.route('/index', methods=['GET'])
 def index():
     return render_template('index.html')
+
+
+@app.route('/devices/<vendor>/status', methods=['GET'])
+@login_required
+def status(vendor):
+    device_ids = request.args.getlist('id')
+    devices = [Device.query.filter_by(id=id, vendor=vendor).first() for id in device_ids]
+    device_status = [{ 'id': device.id, 'is_online': device.is_online } for device in devices]
+    return device_status
 
 
 @app.route('/devices/<vendor>', methods=['GET', 'POST'])
@@ -310,7 +321,7 @@ def download_backups():
                     current_app.root_path, BACKUP_FOLDER_PATH, decrypted_filename)
                 decrypt_blocks_kuznechik(
                     fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
-                
+
                 # Функция удаления дешифрованного файла после ответа
                 @app.after_response
                 def clean_up():

@@ -1,0 +1,14 @@
+function updateDevices(data) {
+  for (var i = 0; i < data.length; i++) {
+    var device = data[i];
+    var deviceElement = document.getElementById("online-indicator-" + device.id);
+
+    if (device.is_online) {
+      deviceElement.classList.remove("bg-danger");
+      deviceElement.classList.add("bg-success");
+    } else {
+      deviceElement.classList.remove("bg-success");
+      deviceElement.classList.add("bg-danger");
+    }
+  }
+}
