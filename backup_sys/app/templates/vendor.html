@@ -36,10 +36,10 @@
                     <td>
                         <div class="status-indicator d-flex justify-content-center mt-2">
                             {% if device.is_online %}
-                            <span class="online-indicator bg-success mx-auto"
+                            <span class="online-indicator bg-success mx-auto" id="online-indicator-{{ device.id }}"
                                 style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
                             {% else %}
-                            <span class="online-indicator bg-danger mx-auto"
+                            <span class="online-indicator bg-danger mx-auto" id="online-indicator-{{ device.id }}"
                                 style="display: inline-block; width: 20px; height: 20px; border-radius: 50%;"></span>
                             {% endif %}
                         </div>

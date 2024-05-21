@@ -1,4 +1,4 @@
-from flask import Flask, after_this_request, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
+from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required
 from sqlalchemy import MetaData
 from flask_sqlalchemy import SQLAlchemy
@@ -31,6 +31,12 @@ application = app
 
 # Для обработки функций после запроса
 AfterResponse(app)
+
+# Настройка APScheduler
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.api_enabled = True
+
 
 # После вызова нужно вызвать элемент init_app, с аргументом объект приложения
 # Этот метод, берет объект приложения и в качестве атрибута записывает сам себя, чтобы у приложения был доступ к этому объекту
@@ -106,12 +112,6 @@ def params():
     return {p: request.form.get(p) for p in DEVICE_PARAMS}
 
 
-# Настройка APScheduler
-scheduler = APScheduler()
-scheduler.init_app(app)
-scheduler.api_enabled = True
-
-
 # Функция пинга
 @scheduler.task('cron', id='ping_devices', minute='*/1')
 def ping_devices():
@@ -131,7 +131,6 @@ def ping_devices():
         else:
             device.is_online = False
         db.session.commit()
-
 
 # Функция авто-бэкапа
 @scheduler.task('cron', id='auto_backup', week='*/1')
@@ -156,7 +155,6 @@ scheduler.start()
 # для прослушивания всех адресов
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
-
 
 def filter_devices(vendor_to_include):
     page = request.args.get('page', 1, type=int)
@@ -275,6 +273,7 @@ def devices(vendor):
         return redirect(url_for('devices', vendor=vendor))
     else:
         devices, pagination = filter_devices(vendor)
+
         return render_template('devices.html', devices=devices, pagination=pagination, vendor=vendor)
 
 
