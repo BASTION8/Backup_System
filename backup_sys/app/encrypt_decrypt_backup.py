@@ -68,9 +68,10 @@ def decrypt_blocks_magma(input_file, output_file, key):
             block = unpad_block(block)
             fout.write(block)  # Запись расшифрованного блока
 
+
 # Пример использования
 # input_file = r'..\backups\backup.cfg'
-# output_file_enc = r'..\backups\output.enc'
+# output_file_enc = r'..\backups\cipher.enc'
 # output_file_dec = r'..\backups\plaintext.cfg'
 
 # Шифрование файла

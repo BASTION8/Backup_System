@@ -1,6 +1,6 @@
 from flask import request, flash
 from encrypt_decrypt_backup import encrypt_blocks_kuznechik, encrypt_blocks_magma
-from config import ENCRYPT_KEY
+from config import ENCRYPT_KEY, CRYPT_ALGORITHM
 import netmiko
 import time
 import re
@@ -85,15 +85,20 @@ def backup_device(ip_address, vendor, login, password):
         if not os.path.exists(backups_dir):
             os.makedirs(backups_dir)
 
-        # Сохранение конфигурации в файл в папке "backups"
+        # Сохранение конфигурации и шифрование в файл в папке "backups"
         try:
             backup_path = os.path.join(backups_dir, filename)
             with open(backup_path, 'w') as backup_file:
                 backup_file.write(config)
 
             encrypted_filename = backup_path.replace('.cfg', '.enc')
-            encrypt_blocks_kuznechik(
-                fr'{backup_path}', fr'{encrypted_filename}', ENCRYPT_KEY)
+            if CRYPT_ALGORITHM:
+                encrypt_blocks_magma(
+                    fr'{backup_path}', fr'{encrypted_filename}', ENCRYPT_KEY)
+            else:
+                encrypt_blocks_kuznechik(
+                    fr'{backup_path}', fr'{encrypted_filename}', ENCRYPT_KEY)
+                
             os.remove(backup_path)
         except Exception as e:
             raise e

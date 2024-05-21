@@ -1,8 +1,6 @@
 from flask_login import UserMixin
-from app import db, app
+from app import db
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask import url_for
-
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'

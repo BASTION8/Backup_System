@@ -9,7 +9,7 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_PASSWORD, ENCRYPT_KEY
+from config import DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM
 import bleach
 import datetime
 import os
@@ -48,25 +48,12 @@ login_manager.init_app(app)
 # is_anonymous - является ли текущий пользователем не аутентифицирован
 # Метод get_id() - возвращает индефикатор пользователя, который будет храниться в сессии, и будет передаваться в (user_id)
 
-# UserMixin - базовый класс, предоставляет реализацию базовых методов и свойств
-
-# Определяем свой метод __init__
-# Вызываем метод __init__ у родительского класса
-# Устанавливаем значение атрибутов:
-# self.id - индефикатор текущего пользователя, id - поумолчанию get(id) берет значение этого атрибута
-# class User(UserMixin):
-#     def __init__(self, user_id, login, password):
-#         super().__init__()
-#         self.id = user_id
-#         self.login = login
-#         self.password = password
 
 # user_loader - декаратор, внутри объекта login_manager запоминаем функцию
 # функция, которая позволяет по индификатору пользователя, который храниться в сессии, вернуть объект соответствующему пользователю
 # или вернуть None если такого пользователя нет
 # Проходимся по БД, проверяем если индефикатор текущего пользователя есть в БД, то возвращаем объект этого пользователя
 # ** - Вместо того чтобы прописывать все параметры, синтаксис словаря, в котором находятся все параметры (user_id, login, password)
-
 
 # Функция load_user - вызывается когда получаем запрос, и хотим проверить если такой пользователь
 @login_manager.user_loader
@@ -319,8 +306,14 @@ def download_backups():
                 decrypted_filename = filename.replace('.enc', '.cfg')
                 decrypted_file_path = os.path.join(
                     current_app.root_path, BACKUP_FOLDER_PATH, decrypted_filename)
-                decrypt_blocks_kuznechik(
-                    fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
+                
+                # Дешифрование
+                if CRYPT_ALGORITHM:
+                    decrypt_blocks_magma(
+                        fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
+                else:
+                    decrypt_blocks_kuznechik(
+                        fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
 
                 # Функция удаления дешифрованного файла после ответа
                 @app.after_response
