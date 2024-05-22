@@ -1,6 +1,6 @@
 from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, inspect
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_apscheduler import APScheduler
@@ -9,7 +9,7 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM
+from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM
 import bleach
 import datetime
 import os
@@ -23,6 +23,7 @@ login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.login_message = 'Для доступа к данной странице необходимо пройти процедуру аутентификации.'
 login_manager.login_message_category = 'warning'
+
 
 app = Flask(__name__)
 app.permanent_session_lifetime = datetime.timedelta(
@@ -93,6 +94,20 @@ BACKUP_FOLDER_PATH = r'..\backups'
 #         path = r'..\backups'
 
 #     return os.path.join(current_app.root_path, path)
+
+# Для начального запуска, создает таблицы и пользователя
+with app.app_context():
+    inspector = inspect(db.engine)
+    has_users_table = inspector.has_table('users')
+    if not has_users_table:
+        # Создание таблицы пользователей
+        db.create_all()
+
+        # Создание первого пользователя
+        default_user = User(login=DEFAULT_LOGIN, password_hash=generate_password_hash(DEFAULT_PASSWORD))
+        db.session.add(default_user)
+        db.session.commit()
+        print('База данных инициализирована.')
 
 
 def params():
