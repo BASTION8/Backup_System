@@ -22,11 +22,11 @@ def backup():
             db.session.commit()
         else:
             flash(
-                'Не удалось сделать резервное копирование - устройство не в сети!', 'warning')
+                f"Не удалось сделать резервное копирование - устройство '{device.hostname}' не в сети!", 'warning')
             return
-        flash('Резервное копирование выполнено успешно!', 'success')
+        flash(f"Резервное копирование устройства '{device.hostname}' выполнено успешно!", 'success')
     except:
-        flash('Не удалось сделать резервное копирование!', 'danger')
+        flash('Не удалось сделать резервное копирование устройства!', 'danger')
 
 
 def backup_device(ip_address, vendor, login, password):

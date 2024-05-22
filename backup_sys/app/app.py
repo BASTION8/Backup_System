@@ -140,10 +140,6 @@ def auto_backup():
 # Запуск задач
 scheduler.start()
 
-# для прослушивания всех адресов
-if __name__ == '__main__':
-    app.run(host='0.0.0.0')
-
 
 def filter_devices(vendor_to_include):
     page = request.args.get('page', 1, type=int)
@@ -264,9 +260,9 @@ def devices(vendor):
             if device:
                 db.session.delete(device)
                 db.session.commit()
-                flash('Устройство успешно удалено!', 'success')
+                flash(f"Устройство '{device.hostname}' успешно удалено!", 'success')
             else:
-                flash('Устройство не найдено!', 'danger')
+                flash(f"Устройство '{device.hostname}' не найдено!", 'danger')
 
         return redirect(url_for('devices', vendor=vendor))
     else:
@@ -325,10 +321,10 @@ def download_backups():
                 return send_from_directory(os.path.join(current_app.root_path, BACKUP_FOLDER_PATH), decrypted_filename, as_attachment=True)
             else:
                 flash(
-                    f"Бэкап для устройства '{selected_device}' не найден.", 'warning')
+                    f"Резервная копия для устройства '{selected_device}' не найдена.", 'warning')
         else:
             flash(
-                f"Устройство '{selected_device}' не имеет бэкапов.", 'danger')
+                f"Устройство '{selected_device}' не имеет резервных копий.", 'danger')
 
         return redirect(url_for('download_backups'))
 
