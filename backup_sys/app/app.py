@@ -1,4 +1,4 @@
-from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
+from flask import Flask, current_app, jsonify, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required
 from sqlalchemy import MetaData, inspect
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +9,7 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM
+from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH
 import bleach
 import datetime
 import os
@@ -80,11 +80,9 @@ migrate = Migrate(app, db)
 
 from models import *
 
-PER_PAGE = 3  # поменять на 10
+PER_PAGE = 5
 
 DEVICE_PARAMS = ['vendor', 'hostname', 'ip_address', 'login', 'password']
-
-BACKUP_FOLDER_PATH = r'..\backups'
 
 # Для правильной работы дебаггера
 # def get_backup_folder():
@@ -215,11 +213,39 @@ def get_last_backup_date(device_name):
         return datetime.datetime.strptime(filename.split('_')[2].split('.')[0], '%Y-%m-%d')
     else:
         return None
+    
+
+def count_backups(devices):
+    count_backups = 0
+    # Получаем список всех файлов и папок в указанной директории
+    items = os.listdir(BACKUP_FOLDER_PATH)
+
+    for device in devices:
+        # Для всех файлов бэкапа проверяем, есть ли название устройства в названии
+        for item in items:
+            # Проверяем, является ли текущий объект файлом
+            if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
+                if device.hostname in item:
+                    count_backups += 1
+
+    return count_backups
 
 
 @app.route('/index', methods=['GET'])
 def index():
-    return render_template('index.html')
+    device_count = Device.query.count()
+    online_count = Device.query.filter_by(is_online=True).count()
+    auto_backup_count = Device.query.filter_by(auto_backup=True).count()
+    devices = Device.query.all()
+
+    # Считаем количество вхождений названий устройств в названи файла бэкапа
+    try:
+        backups_count = count_backups(devices)
+    except Exception as e:
+        flash(f"Произошла ошибка при подсчете бэкапов устройств: {e} !", 'danger')
+
+    return render_template('index.html', device_count=device_count, online_count=online_count,
+                           auto_backup_count=auto_backup_count, backups_count=backups_count)
 
 
 @app.route('/devices/<vendor>/status', methods=['GET'])

@@ -2,6 +2,38 @@
 
 {% block content %}
 
-<h1>Главная</h1>
+<div class="card my-4 d-flex flex-wrap">
+    <div class="card-header">
+        <h4 class="my-1 py-2">Статистика для устройств:</h4>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Наименование</th>
+                    <th scope="col">Значение</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Количество устройств</td>
+                    <td>{{ device_count }}</td>
+                </tr>
+                <tr>
+                    <td>Количество бэкапов</td>
+                    <td>{{ backups_count }}</td>
+                </tr>
+                <tr>
+                    <td>Устройств с авто-бэкапом</td>
+                    <td>{{ auto_backup_count }}</td>
+                </tr>
+                <tr>
+                    <td>Устройств онлайн</td>
+                    <td>{{ online_count }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
 {% endblock %}

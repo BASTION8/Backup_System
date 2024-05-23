@@ -8,3 +8,4 @@ DEFAULT_LOGIN = 'admin' # Стандартный логин
 DEFAULT_PASSWORD = 'admin' # Стандарнтый пароль / нужно сменить после первого входа
 ENCRYPT_KEY = '8899aabbccddeeff0011223344556677fedcba98765432100123456789abcdef' # Ключ для шифрования 256 бит
 CRYPT_ALGORITHM = 0 # Кузнечик = 0, Магма = 1
+BACKUP_FOLDER_PATH = r'..\backups' # Путь папки с резервными копиями
