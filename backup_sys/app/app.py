@@ -1,4 +1,4 @@
-from flask import Flask, current_app, jsonify, render_template, send_from_directory, session, request, redirect, url_for, flash
+from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required
 from sqlalchemy import MetaData, inspect
 from flask_sqlalchemy import SQLAlchemy
@@ -9,7 +9,7 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH
+from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH, DATETIME_AUTO_BACKUP
 import bleach
 import datetime
 import os
@@ -134,16 +134,17 @@ def ping_devices():
 
 
 # Функция авто-бэкапа
-@scheduler.task('cron', id='auto_backup', week='*/1')
+@scheduler.task('cron', id='auto_backup', **DATETIME_AUTO_BACKUP)
 def auto_backup():
     app.app_context().push()
     devices = Device.query.filter_by(auto_backup=True)
     try:
         for device in devices:
             if device.is_online:
-                date = backup_device(
+                date, hostname = backup_device(
                     device.ip_address, device.vendor, device.login, device.password)
                 device.backup_date = date
+                device.hostname = hostname
                 db.session.commit()
     except Exception as e:
         print(f"Ошибка при авто-бэкапе устройств: {e}")
