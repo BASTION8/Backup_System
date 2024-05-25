@@ -36,4 +36,17 @@
     </div>
 </div>
 
+{% if current_user.is_authenticated %}
+<div class="d-flex justify-content-center">
+    <form class="card my-1" method="POST" style="max-width: 21rem;">
+        <div class="card-header">
+            <h5 class="my-1">Генерация ключа шифрования</h5>
+        </div>
+        <div class="card-body p-1">
+            <button type="submit" class="btn btn-primary w-100"> Сгенерировать </button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
 {% endblock %}

@@ -1,6 +1,6 @@
-from flask import request, flash
+from flask import request, flash, session
 from encrypt_decrypt_backup import encrypt_blocks_kuznechik, encrypt_blocks_magma
-from config import ENCRYPT_KEY, CRYPT_ALGORITHM
+from config import CRYPT_ALGORITHM
 import netmiko
 import time
 import re
@@ -9,27 +9,31 @@ import os
 
 def backup():
     from app import db
-    from models import Device
+    from models import Device, User
     # Получение соответствующего устройства, нажатой кнопке
     try:
+        user = User.query.filter_by(id=session.get('user_id')).first()
         device_id = request.form['backup-button']
         device = Device.query.filter_by(id=device_id).first()
-        if device.is_online:
-            date, hostname = backup_device(
-                device.ip_address, device.vendor, device.login, device.password)
-            device.backup_date = date
-            device.hostname = hostname
-            db.session.commit()
-        else:
-            flash(
-                f"Не удалось сделать резервное копирование - устройство '{device.hostname}' не в сети!", 'warning')
+        if user.encrypt_key:
+            if device.is_online:
+                date, hostname = backup_device(
+                    device.ip_address, device.vendor, device.login, device.password, user.encrypt_key)
+                device.backup_date = date
+                device.hostname = hostname
+                db.session.commit()
+            else:
+                flash(
+                    f"Не удалось сделать резервное копирование - устройство '{device.hostname}' не в сети!", 'warning')
+                return
+            flash(f"Резервное копирование устройства '{device.hostname}' выполнено успешно!", 'success')
             return
-        flash(f"Резервное копирование устройства '{device.hostname}' выполнено успешно!", 'success')
+        flash('Сначала необходимо сгенерировать ключ шифрования!', 'warning')
     except:
         flash('Не удалось сделать резервное копирование устройства!', 'danger')
 
 
-def backup_device(ip_address, vendor, login, password):
+def backup_device(ip_address, vendor, login, password, encrypt_key):
     # Подключение к коммутатору
 
     vendor_device_type = {
@@ -86,21 +90,21 @@ def backup_device(ip_address, vendor, login, password):
             os.makedirs(backups_dir)
 
         # Сохранение конфигурации и шифрование в файл в папке "backups"
-        try:
-            backup_path = os.path.join(backups_dir, filename)
-            with open(backup_path, 'w') as backup_file:
-                backup_file.write(config)
+        backup_path = os.path.join(backups_dir, filename)
+        with open(backup_path, 'w') as backup_file:
+            backup_file.write(config)
 
-            encrypted_filename = backup_path.replace('.cfg', '.enc')
+        encrypted_filename = backup_path.replace('.cfg', '.enc')
+        try:
             if CRYPT_ALGORITHM:
                 encrypt_blocks_magma(
-                    fr'{backup_path}', fr'{encrypted_filename}', ENCRYPT_KEY)
+                    fr'{backup_path}', fr'{encrypted_filename}', encrypt_key)
             else:
                 encrypt_blocks_kuznechik(
-                    fr'{backup_path}', fr'{encrypted_filename}', ENCRYPT_KEY)
-                
+                    fr'{backup_path}', fr'{encrypted_filename}', encrypt_key)
             os.remove(backup_path)
         except Exception as e:
+            os.remove(backup_path)
             raise e
-
+                
         return date, hostname

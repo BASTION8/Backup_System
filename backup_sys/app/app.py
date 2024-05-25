@@ -1,5 +1,5 @@
 from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
-from flask_login import LoginManager, login_user, logout_user, login_required
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import MetaData, inspect
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -9,9 +9,11 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, ENCRYPT_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH, DATETIME_AUTO_BACKUP
+from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, API_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH, DATETIME_AUTO_BACKUP
 import bleach
 import datetime
+import requests
+import json
 import os
 import re
 import sys
@@ -137,15 +139,19 @@ def ping_devices():
 @scheduler.task('cron', id='auto_backup', **DATETIME_AUTO_BACKUP)
 def auto_backup():
     app.app_context().push()
+    user = User.query.filter_by(id=session.get('user_id')).first()
     devices = Device.query.filter_by(auto_backup=True)
     try:
-        for device in devices:
-            if device.is_online:
-                date, hostname = backup_device(
-                    device.ip_address, device.vendor, device.login, device.password)
-                device.backup_date = date
-                device.hostname = hostname
-                db.session.commit()
+        if user.encrypt_key:
+            for device in devices:
+                if device.is_online:
+                    date, hostname = backup_device(
+                        device.ip_address, device.vendor, device.login, device.password, user.encrypt_key)
+                    device.backup_date = date
+                    device.hostname = hostname
+                    db.session.commit()
+        else:
+            print('Ошибка при авто-бэкапе устройств: не задан ключ шифрования')
     except Exception as e:
         print(f"Ошибка при авто-бэкапе устройств: {e}")
         return
@@ -231,22 +237,70 @@ def count_backups(devices):
 
     return count_backups
 
+def get_random_hex_strings(api_key, length, count=2):
+       url = 'https://api.random.org/json-rpc/4/invoke'
+       headers = {'Content-Type': 'application/json'}
 
-@app.route('/index', methods=['GET'])
+       payload = {
+           'jsonrpc': '2.0',
+           'method': 'generateStrings',
+           'params': {
+               'apiKey': api_key,
+               'n': count,
+               'length': length,
+               'characters': '0123456789abcdef',
+               'replacement': True
+           },
+           'id': 1
+       }
+
+       response = requests.post(url, headers=headers, data=json.dumps(payload))
+
+       if response.status_code == 200:
+           result = response.json().get('result', {})
+           random_data = result.get('random', {}).get('data', [])
+           return random_data
+       else:
+           print(f'Error: {response.status_code}, {response.text}')
+           return None
+
+
+@app.route('/index', methods=['GET', 'POST'])
 def index():
-    device_count = Device.query.count()
-    online_count = Device.query.filter_by(is_online=True).count()
-    auto_backup_count = Device.query.filter_by(auto_backup=True).count()
-    devices = Device.query.all()
+    if request.method == 'GET':
+        device_count = Device.query.count()
+        online_count = Device.query.filter_by(is_online=True).count()
+        auto_backup_count = Device.query.filter_by(auto_backup=True).count()
+        devices = Device.query.all()
 
-    # Считаем количество вхождений названий устройств в названи файла бэкапа
-    try:
-        backups_count = count_backups(devices)
-    except Exception as e:
-        flash(f"Произошла ошибка при подсчете бэкапов устройств: {e} !", 'danger')
+        # Считаем количество вхождений названий устройств в названи файла бэкапа
+        backups_count = 0
+        try:
+            backups_count += count_backups(devices)
+        except Exception as e:
+            flash(f"Произошла ошибка при подсчете бэкапов устройств: {e} !", 'danger')
 
-    return render_template('index.html', device_count=device_count, online_count=online_count,
-                           auto_backup_count=auto_backup_count, backups_count=backups_count)
+        return render_template('index.html', device_count=device_count, online_count=online_count,
+                            auto_backup_count=auto_backup_count, backups_count=backups_count)
+    else:
+        hex_strings = get_random_hex_strings(API_KEY, 32)
+        try:
+            if hex_strings:
+                user = User.query.filter_by(id=session.get('user_id')).first()
+                user.encrypt_key = "".join(hex_strings)
+                db.session.commit()
+                # Получаем список всех файлов и папок в указанной директории
+                items = os.listdir(BACKUP_FOLDER_PATH)
+                # Удаляем все существующие файлы бэкапов
+                for item in items:
+                    # Проверяем, является ли текущий объект файлом
+                    if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
+                        os.remove(BACKUP_FOLDER_PATH + '\\' + item)
+                flash('Ключ шифрования успешно сгенерирован!', 'success')    
+        except Exception as e:
+            flash(f"Произошла ошибка при генерации ключа: {e} !", 'danger')
+        
+        return redirect(url_for('index'))
 
 
 @app.route('/devices/<vendor>/status', methods=['GET'])
@@ -320,8 +374,6 @@ def download_backups():
         devices = Device.query.all()
         return render_template('download_backups.html', devices=devices)
     else:
-        # Получение из сессии текущего id пользователя, гарантирует защиту от CSRF
-        current_user = User.query.get(session.get('user_id'))
         current_password = request.form['nowPassword']
         # Проверка текущего пароля
         if not current_user.check_password(current_password):
@@ -346,12 +398,13 @@ def download_backups():
                     current_app.root_path, BACKUP_FOLDER_PATH, decrypted_filename)
                 
                 # Дешифрование
+                user = User.query.filter_by(id=session.get('user_id')).first()
                 if CRYPT_ALGORITHM:
                     decrypt_blocks_magma(
-                        fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
+                        fr'{backup_file_path}', fr'{decrypted_file_path}', user.encrypt_key)
                 else:
                     decrypt_blocks_kuznechik(
-                        fr'{backup_file_path}', fr'{decrypted_file_path}', ENCRYPT_KEY)
+                        fr'{backup_file_path}', fr'{decrypted_file_path}', user.encrypt_key)
 
                 # Функция удаления дешифрованного файла после ответа
                 @app.after_response
@@ -360,7 +413,8 @@ def download_backups():
                     print(f"Deleted file: {decrypted_file_path}")
 
                 # Отправка дешифрованного файла, указан глобальный путь для безопасности
-                return send_from_directory(os.path.join(current_app.root_path, BACKUP_FOLDER_PATH), decrypted_filename, as_attachment=True)
+                return send_from_directory(os.path.join(current_app.root_path, BACKUP_FOLDER_PATH),
+                                           decrypted_filename, as_attachment=True)
             else:
                 flash(
                     f"Резервная копия для устройства '{selected_device}' не найдена.", 'warning')
@@ -405,8 +459,6 @@ def change_password():
     if request.method == 'GET':
         return render_template('change_password.html')
     else:
-        # Получение из сессии текущего id пользователя, гарантирует защиту от CSRF
-        current_user = User.query.get(session.get('user_id'))
         current_password = request.form['nowPassword']
         new_password = request.form['newPassword']
         repeat_password = request.form['repeatPassword']
