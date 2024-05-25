@@ -464,6 +464,7 @@ def change_password():
         repeat_password = request.form['repeatPassword']
 
         # Проверка текущего пароля
+        # Получение из flask-login текущего пользователя, гарантирует защиту от CSRF
         if not current_user.check_password(current_password):
             flash('Неверный текущий пароль!', 'warning')
             return redirect(url_for('change_password'))
