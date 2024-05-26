@@ -67,17 +67,3 @@ def decrypt_blocks_magma(input_file, output_file, key):
             block = cipher.decrypt(block)  # Дешифрование блока
             block = unpad_block(block)
             fout.write(block)  # Запись расшифрованного блока
-
-
-# Пример использования
-# input_file = r'..\backups\backup.cfg'
-# output_file_enc = r'..\backups\cipher.enc'
-# output_file_dec = r'..\backups\plaintext.cfg'
-
-# Шифрование файла
-# encrypt_blocks_kuznechik(input_file, output_file_enc, ENCRYPT_KEY)
-# encrypt_blocks_magma(input_file, output_file_enc, ENCRYPT_KEY)
-
-# Дешифрование файла
-# decrypt_blocks_kuznechik(output_file_enc, output_file_dec, ENCRYPT_KEY)
-# decrypt_blocks_magma(output_file_enc, output_file_dec, ENCRYPT_KEY)

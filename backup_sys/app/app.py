@@ -321,7 +321,7 @@ def devices(vendor):
         elif 'auto-backup' in request.form:
             device_id = request.form['auto-backup']
             device = Device.query.filter_by(id=device_id).first()
-            device.auto_backup = not device.auto_backup  # Toggle auto_backup value
+            device.auto_backup = not device.auto_backup  # Меняем значение авто-бэкап
             db.session.commit()
         elif 'create-device' in request.form:
             device = Device(**params())
