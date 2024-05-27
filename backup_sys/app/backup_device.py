@@ -1,6 +1,6 @@
 from flask import request, flash, session
 from encrypt_decrypt_backup import encrypt_blocks_kuznechik, encrypt_blocks_magma
-from config import CRYPT_ALGORITHM
+from config import CRYPT_ALGORITHM, BACKUP_FOLDER_PATH
 import netmiko
 import time
 import re
@@ -85,12 +85,11 @@ def backup_device(ip_address, vendor, login, password, encrypt_key):
         filename = f"backup_{hostname}_{date}.cfg"
 
         # Создание папки "backups" (если она не существует)
-        backups_dir = os.path.join(r'..\backups')
-        if not os.path.exists(backups_dir):
-            os.makedirs(backups_dir)
+        if not os.path.exists(BACKUP_FOLDER_PATH):
+            os.makedirs(BACKUP_FOLDER_PATH)
 
         # Сохранение конфигурации и шифрование в файл в папке "backups"
-        backup_path = os.path.join(backups_dir, filename)
+        backup_path = os.path.join(BACKUP_FOLDER_PATH, filename)
         with open(backup_path, 'w') as backup_file:
             backup_file.write(config)
 

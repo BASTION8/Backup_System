@@ -225,15 +225,15 @@ def get_last_backup_date(device_name):
 def count_backups(devices):
     count_backups = 0
     # Получаем список всех файлов и папок в указанной директории
-    items = os.listdir(BACKUP_FOLDER_PATH)
-
-    for device in devices:
-        # Для всех файлов бэкапа проверяем, есть ли название устройства в названии
-        for item in items:
-            # Проверяем, является ли текущий объект файлом
-            if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
-                if device.hostname in item:
-                    count_backups += 1
+    if os.path.exists(BACKUP_FOLDER_PATH):
+        items = os.listdir(BACKUP_FOLDER_PATH)
+        for device in devices:
+            # Для всех файлов бэкапа проверяем, есть ли название устройства в названии
+            for item in items:
+                # Проверяем, является ли текущий объект файлом
+                if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
+                    if device.hostname in item:
+                        count_backups += 1
 
     return count_backups
 
@@ -290,12 +290,13 @@ def index():
                 user.encrypt_key = "".join(hex_strings)
                 db.session.commit()
                 # Получаем список всех файлов и папок в указанной директории
-                items = os.listdir(BACKUP_FOLDER_PATH)
-                # Удаляем все существующие файлы бэкапов
-                for item in items:
-                    # Проверяем, является ли текущий объект файлом
-                    if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
-                        os.remove(BACKUP_FOLDER_PATH + '\\' + item)
+                if os.path.exists(BACKUP_FOLDER_PATH):
+                    items = os.listdir(BACKUP_FOLDER_PATH)
+                    # Удаляем все существующие файлы бэкапов
+                    for item in items:
+                        # Проверяем, является ли текущий объект файлом
+                        if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
+                            os.remove(BACKUP_FOLDER_PATH + '\\' + item)
                 flash('Ключ шифрования успешно сгенерирован!', 'success')    
         except Exception as e:
             flash(f"Произошла ошибка при генерации ключа: {e} !", 'danger')
@@ -408,9 +409,11 @@ def download_backups():
 
                 # Функция удаления дешифрованного файла после ответа
                 @app.after_response
-                def clean_up():
-                    os.remove(decrypted_file_path)
-                    print(f"Deleted file: {decrypted_file_path}")
+                def delete_file():
+                    if os.path.isfile(decrypted_file_path):
+                        os.remove(decrypted_file_path)
+                        print(f"Deleted file: {decrypted_file_path}")
+                        return
 
                 # Отправка дешифрованного файла, указан глобальный путь для безопасности
                 return send_from_directory(os.path.join(current_app.root_path, BACKUP_FOLDER_PATH),
