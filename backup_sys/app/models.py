@@ -16,10 +16,6 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    @property
-    def full_name(self):
-        return ' '.join([self.last_name, self.first_name, self.middle_name or ''])
-
     def __repr__(self):
         return '<Users  %r>' % self.login
 
