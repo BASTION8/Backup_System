@@ -1,3 +1,4 @@
+import secrets
 from flask import Flask, current_app, render_template, send_from_directory, session, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from sqlalchemy import MetaData, inspect
@@ -9,14 +10,11 @@ from backup_device import backup, backup_device
 from encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
 from ipaddress import ip_address
 from after_response import AfterResponse
-from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, API_KEY, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH, DATETIME_AUTO_BACKUP
+from config import DEFAULT_LOGIN, DEFAULT_PASSWORD, CRYPT_ALGORITHM, BACKUP_FOLDER_PATH, DATETIME_AUTO_BACKUP
 import bleach
 import datetime
-import requests
-import json
 import os
 import re
-import sys
 
 # LoginManager - через этот класс, осуществляем настройку Аутентификации приложения
 # login_manager = LoginManager() - объект класса
@@ -237,33 +235,6 @@ def count_backups(devices):
 
     return count_backups
 
-def get_random_hex_strings(api_key, length, count=2):
-       url = 'https://api.random.org/json-rpc/4/invoke'
-       headers = {'Content-Type': 'application/json'}
-
-       payload = {
-           'jsonrpc': '2.0',
-           'method': 'generateStrings',
-           'params': {
-               'apiKey': api_key,
-               'n': count,
-               'length': length,
-               'characters': '0123456789abcdef',
-               'replacement': True
-           },
-           'id': 1
-       }
-
-       response = requests.post(url, headers=headers, data=json.dumps(payload))
-
-       if response.status_code == 200:
-           result = response.json().get('result', {})
-           random_data = result.get('random', {}).get('data', [])
-           return random_data
-       else:
-           print(f'Error: {response.status_code}, {response.text}')
-           return None
-
 
 @app.route('/index', methods=['GET', 'POST'])
 def index():
@@ -283,23 +254,19 @@ def index():
         return render_template('index.html', device_count=device_count, online_count=online_count,
                             auto_backup_count=auto_backup_count, backups_count=backups_count)
     else:
-        hex_strings = get_random_hex_strings(API_KEY, 32)
-        try:
-            if hex_strings:
-                user = User.query.filter_by(id=session.get('user_id')).first()
-                user.encrypt_key = "".join(hex_strings)
-                db.session.commit()
-                # Получаем список всех файлов и папок в указанной директории
-                if os.path.exists(BACKUP_FOLDER_PATH):
-                    items = os.listdir(BACKUP_FOLDER_PATH)
-                    # Удаляем все существующие файлы бэкапов
-                    for item in items:
-                        # Проверяем, является ли текущий объект файлом
-                        if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
-                            os.remove(BACKUP_FOLDER_PATH + '\\' + item)
-                flash('Ключ шифрования успешно сгенерирован!', 'success')    
-        except Exception as e:
-            flash(f"Произошла ошибка при генерации ключа: {e} !", 'danger')
+        user = User.query.filter_by(id=session.get('user_id')).first()
+        # Используем библиотеку secrets для генерации криптографически защищенного ключа
+        user.encrypt_key = secrets.token_hex(32)
+        db.session.commit()
+        # Получаем список всех файлов и папок в указанной директории
+        if os.path.exists(BACKUP_FOLDER_PATH):
+            items = os.listdir(BACKUP_FOLDER_PATH)
+            # Удаляем все существующие файлы бэкапов
+            for item in items:
+                # Проверяем, является ли текущий объект файлом
+                if os.path.isfile(os.path.join(BACKUP_FOLDER_PATH, item)):
+                    os.remove(BACKUP_FOLDER_PATH + '\\' + item)
+        flash('Ключ шифрования успешно сгенерирован!', 'success')    
         
         return redirect(url_for('index'))
 

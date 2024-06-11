@@ -1,20 +1,23 @@
-import json
+from datetime import datetime
+from ipaddress import ip_address
 import os
+import re
 import shutil
 import socket
 import subprocess
-import requests
 from app.encrypt_decrypt_backup import encrypt_blocks_kuznechik, encrypt_blocks_magma
 from app.encrypt_decrypt_backup import decrypt_blocks_kuznechik, decrypt_blocks_magma
-from app.config import API_KEY
 import borgapi
 import paramiko
+import secrets
 import sys
 
 
 api = borgapi.BorgAPI(defaults={}, options={})
 
-pattern = ['да', 'Да', 'ДА', 'д', 'Д', 'yes', 'YES', 'Y', 'y']
+
+FALSISH = ('No', 'NO', 'no', 'N', 'n', '0', 'нет', 'Нет', 'НЕТ', 'н', 'Н')
+TRUISH = ('Yes', 'YES', 'yes', 'Y', 'y', '1', 'да', 'Да', 'ДА', 'д', 'Д')
 
 # Словарь функций
 funcs = {
@@ -35,40 +38,16 @@ funcs = {
 
 current_dir = os.path.abspath(os.curdir)
 
-# Функция генерации ключа шифрования
-def get_random_hex_strings(api_key, length, count=2):
-       url = 'https://api.random.org/json-rpc/4/invoke'
-       headers = {'Content-Type': 'application/json'}
-
-       payload = {
-           'jsonrpc': '2.0',
-           'method': 'generateStrings',
-           'params': {
-               'apiKey': api_key,
-               'n': count,
-               'length': length,
-               'characters': '0123456789abcdef',
-               'replacement': True
-           },
-           'id': 1
-       }
-
-       response = requests.post(url, headers=headers, data=json.dumps(payload))
-
-       if response.status_code == 200:
-           result = response.json().get('result', {})
-           random_data = result.get('random', {}).get('data', [])
-           return random_data
-       else:
-           print(f'Error: {response.status_code}, {response.text}')
-           return None
-
 
 # Функция для создания ключа шифрования и записи его в файл
 def create_encryption_key(filename):
-    key = "".join(get_random_hex_strings(API_KEY, 32))
+    # Используем библиотеку secrets для генерации криптографически защищенного ключа
+    key = secrets.token_hex(32)
+    # Записываем ключ в файл
     with open(filename, 'w') as file:
         file.write(key)
+    # Устанавливаем права доступа на файл: только владелец файла может читать и записывать в него
+    os.chmod(filename, 0o600)
     print(f"Ключ шифрования успешно создан и сохранён в файл: {filename}")
 
 
@@ -137,44 +116,103 @@ def run_command(ssh_client, command, host_username, host_password):
     exit_status = channel.recv_exit_status()
     return exit_status
 
+
+def validate_input(prompt, check_type='str', allowed_chars=None, min_value=None, max_value=None, date_format=None):
+    """
+    Функция для валидации входных данных.
+    
+    :param prompt: Текст для ввода
+    :param check_type: Тип проверки ('str', 'int', 'ip', 'tr_fl', 'cron' или 'date')
+    :param allowed_chars: Допустимые символы для строк
+    :param min_value: Минимальное значение для чисел
+    :param max_value: Максимальное значение для чисел
+    :return: Проверенное значение
+    """
+    while True:
+        user_input = input(prompt)
+        
+        if check_type == 'int':
+            try:
+                user_input = int(user_input)
+                if (min_value is not None and user_input < min_value) or (max_value is not None and user_input > max_value):
+                    print(f"Пожалуйста, введите число в диапазоне от {min_value} до {max_value}.")
+                    continue
+                return user_input
+            except ValueError:
+                print("Это не число. Пожалуйста, введите число.")
+        
+        elif check_type == 'str':
+            if allowed_chars is not None:
+                if any(char not in allowed_chars for char in user_input):
+                    print(f"Пожалуйста, введите строку, содержащую только символы: {allowed_chars}.")
+                    continue
+            return user_input
+        elif check_type == 'tr_fl':
+            if user_input in TRUISH or user_input in FALSISH:
+                return user_input
+            print("Пожалуйста, введите строку, содержащую только [Да/Нет]")
+            continue
+        elif check_type == 'date':
+            try:
+                datetime.strptime(user_input, date_format)
+                return user_input
+            except ValueError:
+                print(f"Неверный формат даты!")
+        elif check_type == 'cron':
+            cron_regex = r'^\s*([0-9\*\-,\/]+)\s+([0-9\*\-,\/]+)\s+([0-9\*\-,\/]+)\s+([0-9\*\-,\/]+)\s+([0-9\*\-,\/]+)\s*'
+
+            if re.match(cron_regex, user_input):
+                return user_input
+            else:
+                print("Пожалуйста, введите корректное расписание для cron (например, '0 2 * * *').")
+        elif check_type == 'ip':
+            try:
+                ip_address(user_input)
+            except ValueError:
+                print('Неверный формат IP-адреса!')
+                continue
+            return user_input
+        else:
+            print("Неверный тип проверки. Пожалуйста, укажите 'str' или 'int'.")
+
 # Функция создания архива(резервной копии)
 def borg_create_backup(key):
     # Определение параметров создания резервной копии
-    repo_path = os.path.join(current_dir, input('Введите название репозитория [ENG]: '))
-    backup_name = input('Введите название архива [ENG]: ')
-    files_to_backup = input('Укажите абсолютный путь расположения копируемой папки/файла, пример: [/var/www/html]: ')
+    repo_path = os.path.join(current_dir, validate_input('Введите название репозитория [ENG]: '))
+    backup_name = validate_input('Введите название архива [ENG]: ')
+    files_to_backup = validate_input('Укажите абсолютный путь расположения копируемой папки/файла, пример: [/var/www/html]: ')
     host_ip_address = get_local_ip()
     port = 22
-    host_username = input('Введите логин текущего пользователя: ')
-    host_password = input('Введите пароль текущего пользователя: ')
-    ssh_ip_address = input('Введите IP-адрес копируемого сервера: ')
-    ssh_username = input('Введите логин пользователя копируемого сервера: ')
-    ssh_password = input('Введите пароль пользователя копируемого сервера: ')
-    compression = input('Выберите желаемый уровень сжатия архива [1-6]: ')
-    encryption = input('Выберите алгоритм шифрования ГОСТ-34.12-2015 [К]узнечик/[М]агма]: ')
+    host_username = validate_input('Введите логин текущего пользователя: ')
+    host_password = validate_input('Введите пароль текущего пользователя: ')
+    ssh_ip_address = validate_input('Введите IP-адрес копируемого сервера: ', 'ip')
+    ssh_username = validate_input('Введите логин пользователя копируемого сервера: ')
+    ssh_password = validate_input('Введите пароль пользователя копируемого сервера: ')
+    compression = validate_input('Выберите желаемый уровень сжатия архива [1-6]: ', check_type='int', min_value=1, max_value=6)
+    encryption = validate_input('Выберите алгоритм шифрования ГОСТ-34.12-2015 [К]узнечик/[М]агма]: ', allowed_chars=['к', 'м', 'К', 'М'])
     if encryption.lower() == "к":
         encryption = "0"
     elif encryption.lower() == "м":
         encryption = "1"
-    stats = input('Отобразить статистику созданного врхива [Да/Нет]: ')
-    if stats in pattern:
+    stats = validate_input('Отобразить статистику созданного врхива [Да/Нет]: ', check_type='tr_fl')
+    if stats in TRUISH:
         stats = '--stats'
     else:
         stats = ''
-    list = input('Отобразить список элементов в созданном врхиве [Да/Нет]: ')
-    if list in pattern:
+    list = validate_input('Отобразить список элементов в созданном врхиве [Да/Нет]: ', check_type='tr_fl')
+    if list in TRUISH:
         list = '--list'
     else:
         list = ''
-    comment = input('Добавить текст комментария в архив [Да/Нет]: ')
-    if comment in pattern:
-        comment = input('Введите комментарий: ')
+    comment = validate_input('Добавить текст комментария в архив [Да/Нет]: ', check_type='tr_fl')
+    if comment in TRUISH:
+        comment = validate_input('Введите комментарий: ')
         comment = f"--comment {comment}"
     else:
         comment = ''
-    timestamp = input('Указать вручную дату создания архива [Да/Нет]: ')
-    if timestamp in pattern:
-        timestamp = input('Укажите дату в формате [YYYY-MM-DD]: ')
+    timestamp = validate_input('Указать вручную дату создания архива [Да/Нет]: ', check_type='tr_fl')
+    if timestamp in TRUISH:
+        timestamp = validate_input('Укажите дату в формате [YYYY-MM-DD]: ', check_type='date', date_format=f"%Y-%m-%d")
         timestamp = f"--timestamp {timestamp}"
     else:
         timestamp = ''
@@ -206,28 +244,27 @@ def borg_create_backup(key):
     else:
         print(f"Код ошибки: {exit_status}")
 
-
 # Функция автоматического создания (архива)резервной копии 
 def schedule_automatic_backup(key):
     # Сбор данных от пользователя
-    repo_path = os.path.join(current_dir, input('Введите название репозитория [ENG]: '))
-    backup_name = input('Введите название архива [ENG]: ')
-    files_to_backup = input('Укажите абсолютный путь расположения копируемой папки/файла, пример: [/var/www/html]: ')
+    repo_path = os.path.join(current_dir, validate_input('Введите название репозитория [ENG]: '))
+    backup_name = validate_input('Введите название архива [ENG]: ')
+    files_to_backup = validate_input('Укажите абсолютный путь расположения копируемой папки/файла, пример: [/var/www/html]: ')
     host_ip_address = get_local_ip()
-    host_username = input('Введите логин текущего пользователя: ')
-    host_password = input('Введите пароль текущего пользователя: ')
-    ssh_ip_address = input('Введите IP-адрес копируемого сервера: ')
-    ssh_username = input('Введите логин пользователя копируемого сервера: ')
-    ssh_password = input('Введите пароль пользователя копируемого сервера: ')
-    compression = input('Выберите желаемый уровень сжатия архива [1-6]: ')
-    encryption = input('Выберите алгоритм шифрования ГОСТ-34.12-2015 [К]узнечик/[М]агма]: ')
+    host_username = validate_input('Введите логин текущего пользователя: ')
+    host_password = validate_input('Введите пароль текущего пользователя: ')
+    ssh_ip_address = validate_input('Введите IP-адрес копируемого сервера: ', 'ip')
+    ssh_username = validate_input('Введите логин пользователя копируемого сервера: ')
+    ssh_password = validate_input('Введите пароль пользователя копируемого сервера: ')
+    compression = validate_input('Выберите желаемый уровень сжатия архива [1-6]: ', check_type='int', min_value=1, max_value=6)
+    encryption = validate_input('Выберите алгоритм шифрования ГОСТ-34.12-2015 [К]узнечик/[М]агма]: ', allowed_chars=['к', 'м', 'К', 'М'])
     if encryption.lower() == "к":
         encryption = "0"
     elif encryption.lower() == "м":
         encryption = "1"
     
     # Настройка cron задания
-    cron_schedule = input("Введите расписание для cron (например, '0 2 * * *' для запуска каждый день в 2 утра): ")
+    cron_schedule = validate_input("Введите расписание для cron (например, '0 2 * * *' для запуска каждый день в 2 утра): ", check_type='cron')
 
     # Создание строки команды для cron
     command = (
@@ -275,7 +312,7 @@ def main():
                 print("Создание ключа шифрования.")
                 print("Внимание! При создании нового ключа шифрования существующий репозиторий удалится.")
                 answer = input("Вы уверены [Да/Нет]: ")
-                if answer in pattern:
+                if answer in TRUISH:
                     # Проверяем существование и удаляем репозиторий
                     if os.path.exists(os.path.join(current_dir, rep_name)):
                         shutil.rmtree(os.path.join(current_dir, rep_name))
@@ -294,7 +331,7 @@ def main():
                 print("Проверка согласованности репозитория и его архивов")
                 rep_name = input('Введите название репозитория [ENG]: ')
                 repair = input('Исправить обнаруженные несоответствия [Да/Нет]: ')
-                if repair in pattern:
+                if repair in TRUISH:
                     repair = True
                     print("Это потенциально опасная функция.\n"
                         "Может привести к потере данных\n"
@@ -323,7 +360,7 @@ def main():
                 rep_name = input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
                 backup_name = input("Вы хотите посмотреть список архива [Да/Нет]: ")
-                if backup_name in pattern:
+                if backup_name in TRUISH:
                     backup_name = input('Введите название архива [ENG]: ')
                     try:
                         output = api.list(f"{repo_path}::{backup_name}")
@@ -340,7 +377,7 @@ def main():
                 rep_name = input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
                 backup_name = input("Вы хотите удалить архив [Да/Нет]: ")
-                if backup_name in pattern:
+                if backup_name in TRUISH:
                     backup_name = input('Введите название архива [ENG]: ')
                     print("Это потенциально опасная функция.\n"
                         "Может привести к потере данных\n"
@@ -375,7 +412,7 @@ def main():
                 rep_name = input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
                 backup_name = input("Вы хотите посмотреть информацию об архиве [Да/Нет]: ")
-                if backup_name in pattern:
+                if backup_name in TRUISH:
                     backup_name = input('Введите название архива [ENG]: ')
                     try:
                         output = api.info(f"{repo_path}::{backup_name}")
