@@ -105,7 +105,7 @@ def run_command(ssh_client, command, host_username, host_password):
             # Проверка на интерактивные запросы
             if 'Are you sure you want to continue connecting (yes/no/[fingerprint])?' in output:
                 channel.send('yes\n')
-            elif f"{host_username}@172.16.15.12's password:" in output:
+            elif f"{host_username}" in output:
                 channel.send(f'{host_password}\n')
             elif 'Warning: Attempting' in output:
                 channel.send('y\n')
