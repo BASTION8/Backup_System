@@ -301,7 +301,7 @@ def main():
 
         # Получение выбранной функции от пользователя
         try:
-            choice = int(input('Выберите функцию: '))
+            choice = int(validate_input('Выберите функцию: '))
         except ValueError:
             print("Пожалуйста, введите число.")
             continue
@@ -311,7 +311,7 @@ def main():
             case 0:
                 print("Создание ключа шифрования.")
                 print("Внимание! При создании нового ключа шифрования существующий репозиторий удалится.")
-                answer = input("Вы уверены [Да/Нет]: ")
+                answer = validate_input("Вы уверены [Да/Нет]: ")
                 if answer in TRUISH:
                     # Проверяем существование и удаляем репозиторий
                     if os.path.exists(os.path.join(current_dir, rep_name)):
@@ -321,16 +321,16 @@ def main():
                 create_encryption_key(key_filename)
             case 1:
                 print("Инициализация репозитория.")
-                rep_name = input('Укажите имя репозитория [ENG]: ')
-                storage_quota = input('Укажите максимальный размер репозитория, пример: [2M/2G/2T]: ')
+                rep_name = validate_input('Укажите имя репозитория [ENG]: ')
+                storage_quota = validate_input('Укажите максимальный размер репозитория, пример: [2M/2G/2T]: ')
                 try:
                     initialize_repository(rep_name, storage_quota)
                 except Exception as e:
                     return e
             case 2:
                 print("Проверка согласованности репозитория и его архивов")
-                rep_name = input('Введите название репозитория [ENG]: ')
-                repair = input('Исправить обнаруженные несоответствия [Да/Нет]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
+                repair = validate_input('Исправить обнаруженные несоответствия [Да/Нет]: ')
                 if repair in TRUISH:
                     repair = True
                     print("Это потенциально опасная функция.\n"
@@ -346,10 +346,10 @@ def main():
                     return e
             case 3:
                 print("Изменение названия архива(резервной копии).")
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
-                backup_name = input('Введите название архива [ENG]: ')
-                new_backup_name = input('Введите новое название архива [ENG]: ')
+                backup_name = validate_input('Введите название архива [ENG]: ')
+                new_backup_name = validate_input('Введите новое название архива [ENG]: ')
                 try:
                     api.rename(f"{repo_path}::{backup_name}", newname=new_backup_name)
                     print(f"Новое название архива: {new_backup_name}")
@@ -357,11 +357,11 @@ def main():
                     return e
             case 4:
                 print("Вывод списка содержимого репозитория или архива.")
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
-                backup_name = input("Вы хотите посмотреть список архива [Да/Нет]: ")
+                backup_name = validate_input("Вы хотите посмотреть список архива [Да/Нет]: ")
                 if backup_name in TRUISH:
-                    backup_name = input('Введите название архива [ENG]: ')
+                    backup_name = validate_input('Введите название архива [ENG]: ')
                     try:
                         output = api.list(f"{repo_path}::{backup_name}")
                     except Exception as e:
@@ -374,11 +374,11 @@ def main():
                 print(f"\n{output}")
             case 5:
                 print("Удаление архива из репозитория или всего репозитория")
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
-                backup_name = input("Вы хотите удалить архив [Да/Нет]: ")
+                backup_name = validate_input("Вы хотите удалить архив [Да/Нет]: ")
                 if backup_name in TRUISH:
-                    backup_name = input('Введите название архива [ENG]: ')
+                    backup_name = validate_input('Введите название архива [ENG]: ')
                     print("Это потенциально опасная функция.\n"
                         "Может привести к потере данных\n"
                         "БУДЬТЕ ОЧЕНЬ ОСТОРОЖНЫ!\n"
@@ -400,7 +400,7 @@ def main():
                         return e
             case 6:
                 print('Освобождает место в репозитории путем сжатия сегментов.')
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
                 try:
                     api.compact(f"{repo_path}")
@@ -409,11 +409,11 @@ def main():
                         return e
             case 7:
                 print("Отображает подробную информацию об указанном репозитории или архиве.")
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
-                backup_name = input("Вы хотите посмотреть информацию об архиве [Да/Нет]: ")
+                backup_name = validate_input("Вы хотите посмотреть информацию об архиве [Да/Нет]: ")
                 if backup_name in TRUISH:
-                    backup_name = input('Введите название архива [ENG]: ')
+                    backup_name = validate_input('Введите название архива [ENG]: ')
                     try:
                         output = api.info(f"{repo_path}::{backup_name}")
                     except Exception as e:
@@ -426,7 +426,7 @@ def main():
                 print(f"\n{output}")
             case 8:
                 print("Обновление существующего репозитория.")
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
                 try:
                     api.upgrade(f"{repo_path}")
@@ -450,10 +450,10 @@ def main():
                 # Получение ключа шифрования из файла
                 key = read_encryption_key(key_filename)
                 
-                rep_name = input('Введите название репозитория [ENG]: ')
+                rep_name = validate_input('Введите название репозитория [ENG]: ')
                 repo_path = os.path.join(current_dir, rep_name)
-                backup_name = input('Введите название архива [ENG]: ')
-                files_path = input('Укажите абсолютный путь расположения разархивируемых файлов, пример: [/var/www/html]: ')
+                backup_name = validate_input('Введите название архива [ENG]: ')
+                files_path = validate_input('Укажите абсолютный путь расположения разархивируемых файлов, пример: [/var/www/html]: ')
                 # Проверяем существование и разархивируем архив
                 if os.path.exists(repo_path):
                     # Проходимся по каждому файлу внутри архива и дешифруем его
